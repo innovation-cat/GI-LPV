@@ -1,9 +1,13 @@
 open GL       (* Module For The OpenGL Library *)
 open Glu      (* Module For The GLu Library *)
 open Glut     (* Module For The GLUT Library *)
+open VBO
+open Glex
 open Texture
 open Loadtga
 open Model
+open Vector
+open Glsl_shader
 
 (* rotation angle for the triangle. *)
 let rtri = ref 0.0
@@ -11,11 +15,11 @@ let rtri = ref 0.0
 (* rotation angle for the quadrilateral. *)
 let rquad = ref 0.0
 
-let (|>) x f = f x;;
+let (|>) x f = f x
 
 let insert_textures () =
 	Printf.printf "begin\n" ;
-	let base = {tex_id = glGenTexture (); target = BindTex.GL_TEXTURE_2D ; name = "wall"} in
+	let base = {Texture.tex_id = glGenTexture (); Texture.target = BindTex.GL_TEXTURE_2D ; Texture.name = "wall"} in
 	let open Texture.Texture_Params_2D in
 	let {width;height;bpp;pixels} = load_image "./brick1.tga" in
 	let params = {init_param_2d with min_filter = GL.Min.GL_LINEAR; 
@@ -31,7 +35,7 @@ let insert_textures () =
 	let params = {params with source_format = if bpp=4 then GL_RGBA else GL_RGB;
 				  internal_format = if bpp=4 then InternalFormat.GL_RGBA else InternalFormat.GL_RGB;}
 	in 
-	let base = {base with tex_id = glGenTexture (); name = "floor"} in
+	let base = {base with Texture.tex_id = glGenTexture (); Texture.name = "floor"} in
 	Texture.create_texture_2d ~base ~params ~width ~height ~pixels
 
 (*	Resource_Map.add "wall" (base,params) 
@@ -41,6 +45,139 @@ let insert_textures () =
 	glTexParameter ~target:TexParam.GL_TEXTURE_2D ~param:(TexParam.GL_TEXTURE_MIN_FILTER Min.GL_LINEAR);*)
 ;;	
 
+let create_model () =
+	let vertexes = Model.setup (open_in "../image/data.txt") in
+	let bbox = Bounding_box.create () in
+	let bbox = Array.fold_left (fun b {pos={x;y;z}; _ } -> Bounding_box.add_vertex (x,y,z) b) bbox vertexes in
+	let buffer = { 	Model.vbo = glGenBuffer (); 
+			Model.name = "test_model_vertex_buffer"; 
+			Model.length = Array.length vertexes; 
+			Model.element_size = 32; 
+			Model.buffer_decl= [|{f_type=VEC3F; f_name="position"};{f_type=VEC3F; f_name="normal"}; {f_type=VEC2F; f_name="texcoord"}|];
+		     	bbox
+		     }
+	in
+	let buffer_size = buffer.Model.length * buffer.Model.element_size in
+	let vertexes_array = Array.make buffer_size 0.0 in
+	let index = ref 0 in
+	Array.iter (fun {pos={x;y;z};nor={m;n;k};tc={s;t}} -> vertexes_array.(!index) <- x; vertexes_array.(!index+1) <- y;
+							      vertexes_array.(!index+2) <- z; vertexes_array.(!index+3) <- m;
+							      vertexes_array.(!index+4) <- n; vertexes_array.(!index+5) <- k;
+							      vertexes_array.(!index+6) <- s; vertexes_array.(!index+7) <- t;
+							      index := !index + 8) vertexes;
+	let vertexes_bigarray = Bigarray.Array1.of_array Bigarray.float32 Bigarray.c_layout vertexes_array in
+	glBindBuffer GL_ARRAY_BUFFER buffer.vbo;
+	glBufferData GL_ARRAY_BUFFER (ba_sizeof vertexes_bigarray) vertexes_bigarray GL_STATIC_DRAW;
+	insert_vertex_buffer buffer 
+;;
+
+let create_rsm_shader () = 
+	let vertex_shader = glCreateShader GL_VERTEX_SHADER in
+	let sc = open_in "../shader/rsm.vp" in
+	let size = in_channel_length sc in
+	let vertex_shader_src = String.create size in
+	ignore (input sc vertex_shader_src 0 size);
+	glShaderSource vertex_shader vertex_shader_src;
+
+	let fragment_shader = glCreateShader GL_FRAGMENT_SHADER in
+	let sc = open_in "../shader/rsm.fp" in
+	let size = in_channel_length sc in
+	let fragment_shader_src = String.create size in
+	ignore (input sc fragment_shader_src 0 size);
+	glShaderSource fragment_shader fragment_shader_src;
+
+	glCompileShader vertex_shader;
+	glGetShaderCompileStatus_exn vertex_shader;
+	glCompileShader fragment_shader;
+	glGetShaderCompileStatus_exn fragment_shader;
+
+	let program = glCreateProgram () in
+	glAttachShader program vertex_shader;
+	glAttachShader program fragment_shader;
+	glLinkProgram program;
+	let attributes = [|{Glsl_shader.name = "normal"; Glsl_shader.value = glGetAttribLocation program "normal"};
+			   {Glsl_shader.name = "position"; Glsl_shader.value = glGetAttribLocation program "position"};
+			   {Glsl_shader.name = "texcoord"; Glsl_shader.value = glGetAttribLocation program "texcoord"} |] 
+	in
+	let geometry_shader = glCreateShader GL_GEOMETRY_SHADER in
+	let shader_info = {vertex_shader; fragment_shader; geometry_shader; program;attributes} in
+	insert_shader_list "rsm" shader_info
+;;
+
+let create_final0_shader () = 
+	let vertex_shader = glCreateShader GL_VERTEX_SHADER in
+	let sc = open_in "../shader/final.vp" in
+	let size = in_channel_length sc in
+	let vertex_shader_src = String.create size in
+	ignore (input sc vertex_shader_src 0 size);
+	glShaderSource vertex_shader vertex_shader_src;
+
+	let fragment_shader = glCreateShader GL_FRAGMENT_SHADER in
+	let sc = open_in "../shader/final.fp" in
+	let size = in_channel_length sc in
+	let fragment_shader_src = String.create size in
+	ignore (input sc fragment_shader_src 0 size);
+	glShaderSource fragment_shader fragment_shader_src;
+
+	glCompileShader vertex_shader;
+	glGetShaderCompileStatus_exn vertex_shader;
+	glCompileShader fragment_shader;
+	glGetShaderCompileStatus_exn fragment_shader;
+
+	let program = glCreateProgram () in
+	glAttachShader program vertex_shader;
+	glAttachShader program fragment_shader;
+	glLinkProgram program;
+	let attributes = [|{Glsl_shader.name = "normal"; Glsl_shader.value = glGetAttribLocation program "normal"};
+			   {Glsl_shader.name = "position"; Glsl_shader.value = glGetAttribLocation program "position"};
+			   {Glsl_shader.name = "texcoord"; Glsl_shader.value = glGetAttribLocation program "texcoord"} |] 
+	in
+	let geometry_shader = glCreateShader GL_GEOMETRY_SHADER in
+	let shader_info = {vertex_shader; fragment_shader; geometry_shader; program;attributes} in
+	insert_shader_list "final0" shader_info
+;;
+
+let create_final1_shader () = 
+	let vertex_shader = glCreateShader GL_VERTEX_SHADER in
+	let sc = open_in "../shader/final.vp" in
+	let size = in_channel_length sc in
+	let vertex_shader_src = String.create size in
+	ignore (input sc vertex_shader_src 0 size);
+	let sources = [|"#define NO_INDIRECT_LIGHT"; vertex_shader_src|] in
+	glShaderSources vertex_shader 2 (Some sources) None;
+
+	let fragment_shader = glCreateShader GL_FRAGMENT_SHADER in
+	let sc = open_in "../shader/final.fp" in
+	let size = in_channel_length sc in
+	let fragment_shader_src = String.create size in
+	ignore (input sc fragment_shader_src 0 size);
+	let sources = [|"#define NO_INDIRECT_LIGHT"; fragment_shader_src|] in
+	glShaderSources fragment_shader 2 (Some sources) None;
+
+	glCompileShader vertex_shader;
+	glGetShaderCompileStatus_exn vertex_shader;
+	glCompileShader fragment_shader;
+	glGetShaderCompileStatus_exn fragment_shader;
+
+	let program = glCreateProgram () in
+	glAttachShader program vertex_shader;
+	glAttachShader program fragment_shader;
+	glLinkProgram program;
+	let attributes = [|{Glsl_shader.name = "normal"; Glsl_shader.value = glGetAttribLocation program "normal"};
+			   {Glsl_shader.name = "position"; Glsl_shader.value = glGetAttribLocation program "position"};
+			   {Glsl_shader.name = "texcoord"; Glsl_shader.value = glGetAttribLocation program "texcoord"} |] 
+	in
+	let geometry_shader = glCreateShader GL_GEOMETRY_SHADER in
+	let shader_info = {vertex_shader; fragment_shader; geometry_shader; program;attributes} in
+	insert_shader_list "final1" shader_info
+;;
+
+let create_shader () = 
+	create_rsm_shader ();
+	create_final0_shader ();
+	create_final1_shader ();
+;;
+	
 (* A general OpenGL initialization function.  Sets all of the initial parameters. *)
 let initGL ~width ~height =                     (* We call this right after our OpenGL window is created. *)
   	glClearColor 0.0 0.0 0.0 0.0;                 (* This Will Clear The Background Color To Black *)
@@ -58,23 +195,8 @@ let initGL ~width ~height =                     (* We call this right after our 
   	glMatrixMode GL_MODELVIEW;
 	Printf.printf "init begin.";	
 	insert_textures ();
-try
-	let vertexes = Model.setup (open_in "../image/data.txt") in
-	let buffer = { 	vbo = glGenBuffer (); 
-			name = "test_model_vertex_buffer"; 
-			length = Array.length vertexes; 
-			element_size = 32; 
-			buffer_decl= [|{field=VEC3F; name="position"};{filed=VEC3F; name="normal"}; {field=VEC2F; name="texcoord"}|]
-		     }
-	in
-	let vertexes_bigarray = Bigarray.Array1.of_array Bigarray.float32 Bigarray.c_layout vertexes in
-	let buffer_size = buffer.length * buffer.element_szie in
-	glBindBuffer GL_ARRAY_BUFFER buffer.vbo;
-	glBufferData GL_ARRAY_BUFFER (ba_sizeof vertexes_bigarray) vertexes_bigarray GL_STATIC_DRAW;
-	insert_vertex_buffer buffer 
-with
-	_ -> Printf.printf "I don't know.\n"
-;;
+	create_model ();
+	create_shader ()
 
 
 (* The function called when our window is resized (which shouldn't happen, because we're fullscreen) *)
@@ -103,9 +225,9 @@ let drawGLScene() =
   glTranslate (-1.5) (0.0) (-6.0);              (* Move Left 1.5 Units And Into The Screen 6.0 *)
 
 	glRotate (!rquad) 1.0 1.0 1.0;
-	Printf.printf "draw begin.%d\n" (Resource_Map.cardinal (!texture_list));
+	Printf.printf "draw begin.%d\n" (Texture.Resource_Map.cardinal (!texture_list));
 try
-	let (base, params) = Resource_Map.find "floor" (!texture_list) in
+	let (base, params) = Texture.Resource_Map.find "floor" (!texture_list) in
 glBindTexture BindTex.GL_TEXTURE_2D base.tex_id;
 (*	 	
   (* draw a pyramid (in smooth coloring mode) *)

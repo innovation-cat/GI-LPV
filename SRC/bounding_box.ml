@@ -1,24 +1,22 @@
-type vec3 = { mutable x : float; mutable y : float; mutable z : float}
+open Vector
 
-type bounding_box = {mutable min : vec3; mutable max : vec3}
+type bounding_box = {mutable min : vec; mutable max : vec}
 
-let calc_center bbox = {
-			x = (bbox.min.x +. bbox.max.x) /. 2.0; 
-			y = (bbox.min.y +. bbox.max.y) /. 2.0;
-			z = (bbox.min.y +. bbox.max.y) /. 2.0;
-		       }
+let create () = {min = Vec3 (0.0,0.0,0.0); max = Vec3 (0.0,0.0,0.0)}
 
-let add_vertex v bbox = 
-	if v.x < bbox.min.x then bbox.min.x <- v.x
-	else if v.y < bbox.min.y then bbox.min.y <- v.y
-	else if v.z < bbox.min.z then bbox.min.z <- v.z
-	else if v.x > bbox.max.x then bbox.max.x <- v.x
-	else if v.y > bbox.max.y then bbox.max.y <- v.x
-	else if v.z > bbox.max.z then bbox.max.z <- v.z
-;;
+let calc_center bbox = 
+	match (bbox.min, bbox.max) with
+	    (Vec3 (x1,y1,z1), Vec3 (x2,y2,z2)) -> Vec3 ((x1 +. x2) /. 2.0, (y1 +. y2) /. 2.0, (z1 +. z2) /. 2.0)
+	|   _ -> raise (Failure "bounding_box: unexpected error.")
 
-let calc_dim bbox = {
-			x = bbox.max.x -. bbox.min.x;
-		    	y = bbox.max.y -. bbox.min.y;
-			z = bbox.max.z -. bbox.min.z;
-		     }
+let add_vertex (x,y,z) bbox = 
+	match (bbox.min, bbox.max) with
+	    (Vec3 (x1,y1,z1), Vec3 (x2,y2,z2)) -> bbox.min <- Vec3 ( min x x1 , min y y1 , min z z1);
+						  bbox.max <- Vec3 ( max x x2 , max y y2 , max z z2);
+						  bbox
+	|  _  -> raise (Failure "bounding_box: unexpected error.")
+
+let calc_dim bbox = 
+	match (bbox.min, bbox.max) with
+	    (Vec3 (x1,y1,z1), Vec3 (x2,y2,z2)) -> Vec3 ((x2 -. x1) /. 2.0, (y2 -. y1) /. 2.0, (z2 -. z1) /. 2.0)
+	|   _ -> raise (Failure "bounding box: unexpected error.")
