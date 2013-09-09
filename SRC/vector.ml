@@ -192,4 +192,8 @@ let set_z_rotation rad =
 	m.(0) <- c; m.(1) <- s;	m.(4) <- -1. *. s; m.(5) <-  c;	
 	m
 
-
+let print_matrix m = 
+	Printf.printf "%f %f %f %f\n" m.(0) m.(4) m.(8) m.(12);
+	Printf.printf "%f %f %f %f\n" m.(1) m.(5) m.(9) m.(13);
+	Printf.printf "%f %f %f %f\n" m.(2) m.(6) m.(10) m.(14);
+	Printf.printf "%f %f %f %f\n" m.(3) m.(7) m.(11) m.(15)

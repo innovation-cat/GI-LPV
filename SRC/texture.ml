@@ -24,18 +24,19 @@ module Texture_Params_2D = struct
 					mutable degree_of_anisotropy : int
 			 	}
 
-	let init_param_2d = {
-				target = TexParam.GL_TEXTURE_2D;
-				wrap_s = GL_CLAMP_TO_EDGE;
-				wrap_t = GL_CLAMP_TO_EDGE;
-				mag_filter = GL.Mag.GL_LINEAR;
-				min_filter = GL.Min.GL_LINEAR;
-				source_format = GL_RGB;
-				internal_format = InternalFormat.GL_RGB;
-				n_type = GL_UNSIGNED_BYTE;
-				degree_of_anisotropy = 0
-			    }
 end
+
+let init_param_2d = {
+			Texture_Params_2D.target = TexParam.GL_TEXTURE_2D;
+			Texture_Params_2D.wrap_s = GL_CLAMP_TO_EDGE;
+			Texture_Params_2D.wrap_t = GL_CLAMP_TO_EDGE;
+			Texture_Params_2D.mag_filter = GL.Mag.GL_LINEAR;
+			Texture_Params_2D.min_filter = GL.Min.GL_LINEAR;
+			Texture_Params_2D.source_format = GL_RGB;
+			Texture_Params_2D.internal_format = InternalFormat.GL_RGB;
+			Texture_Params_2D.n_type = GL_UNSIGNED_BYTE;
+			Texture_Params_2D.degree_of_anisotropy = 0
+		    }
 
 module Texture_Params_3D = struct
 	type texture_params_3d = {			
@@ -49,20 +50,20 @@ module Texture_Params_3D = struct
 					mutable internal_format      : InternalFormat.internal_format;
 					mutable n_type               : pixel_data_type;
 			 	}
-
-
-	let init_param_3d = {
-				target = TexParam.GL_TEXTURE_3D;
-				wrap_s = GL_CLAMP;
-				wrap_t = GL_CLAMP;
-				wrap_r = GL_CLAMP;
-				mag_filter = GL.Mag.GL_LINEAR;
-				min_filter = GL.Min.GL_LINEAR;
-				source_format = GL_RGB;
-				internal_format = InternalFormat.GL_RGB;
-				n_type = GL_UNSIGNED_BYTE;
-			    }
 end
+
+let init_param_3d = {
+			Texture_Params_3D.target = TexParam.GL_TEXTURE_3D;
+			Texture_Params_3D.wrap_s = GL_CLAMP;
+			Texture_Params_3D.wrap_t = GL_CLAMP;
+			Texture_Params_3D.wrap_r = GL_CLAMP;
+			Texture_Params_3D.mag_filter = GL.Mag.GL_LINEAR;
+			Texture_Params_3D.min_filter = GL.Min.GL_LINEAR;
+			Texture_Params_3D.source_format = GL_RGB;
+			Texture_Params_3D.internal_format = InternalFormat.GL_RGB;
+			Texture_Params_3D.n_type = GL_UNSIGNED_BYTE;
+		   }
+
 
 type texture = Texture_2D of texture_base*Texture_Params_2D.texture_params_2d | Texture_3D of texture_base*Texture_Params_3D.texture_params_3d
 

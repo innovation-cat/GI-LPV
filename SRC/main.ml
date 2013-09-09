@@ -8,6 +8,7 @@ open Loadtga
 open Model
 open Vector
 open Glsl_shader
+open Directional_light
 
 (* rotation angle for the triangle. *)
 let rtri = ref 0.0
@@ -17,8 +18,9 @@ let rquad = ref 0.0
 
 let (|>) x f = f x
 
+let grid_bbox = ref (Bounding_box.create ())
+
 let insert_textures () =
-	Printf.printf "begin\n" ;
 	let base = {Texture.tex_id = glGenTexture (); Texture.target = BindTex.GL_TEXTURE_2D ; Texture.name = "wall"} in
 	let open Texture.Texture_Params_2D in
 	let {width;height;bpp;pixels} = load_image "./brick1.tga" in
@@ -172,15 +174,26 @@ let create_final1_shader () =
 	insert_shader_list "final1" shader_info
 ;;
 
+let create_grid_bounding_box () =
+	let buffer = Model.Resource_Map.find "test_model_vertex_buffer" (!Model.buffer_list) in
+	Vector.print buffer.Model.bbox.Bounding_box.min;
+	let v = Bounding_box.calc_dim buffer.Model.bbox in
+	Vector.print v;
+	let d = (Vector.length v) *. 0.5 in
+	grid_bbox := buffer.Model.bbox;
+	Bounding_box.add_vertex (d, d, d) !grid_bbox;
+	Bounding_box.add_vertex (-1. *. d, -1. *. d, -1. *. d) !grid_bbox
+;;
+
 let create_shader () = 
 	create_rsm_shader ();
 	create_final0_shader ();
-	create_final1_shader ();
+	create_final1_shader ()
 ;;
 	
 (* A general OpenGL initialization function.  Sets all of the initial parameters. *)
 let initGL ~width ~height =                     (* We call this right after our OpenGL window is created. *)
-  	glClearColor 0.0 0.0 0.0 0.0;                 (* This Will Clear The Background Color To Black *)
+	glClearColor 0.0 0.0 0.0 0.0;                 (* This Will Clear The Background Color To Black *)
 	glClearDepth 1.0;                             (* Enables Clearing Of The Depth Buffer *)
   	glDepthFunc GL_LESS;                          (* The Type Of Depth Test To Do *)
   	glEnable GL_DEPTH_TEST;                       (* Enables Depth Testing *)
@@ -196,8 +209,11 @@ let initGL ~width ~height =                     (* We call this right after our 
 	Printf.printf "init begin.";	
 	insert_textures ();
 	create_model ();
-	create_shader ()
-
+	create_shader ();
+	create_grid_bounding_box ();
+	Directional_light.create (Vec3 (0., -1., -1.)) (!grid_bbox);
+	let rsm_width = 512 and rsm_height = 512 in
+	 
 
 (* The function called when our window is resized (which shouldn't happen, because we're fullscreen) *)
 let reSizeGLScene ~width ~height =

@@ -18,5 +18,5 @@ let add_vertex (x,y,z) bbox =
 
 let calc_dim bbox = 
 	match (bbox.min, bbox.max) with
-	    (Vec3 (x1,y1,z1), Vec3 (x2,y2,z2)) -> Vec3 ((x2 -. x1) /. 2.0, (y2 -. y1) /. 2.0, (z2 -. z1) /. 2.0)
+	    (Vec3 (x1,y1,z1), Vec3 (x2,y2,z2)) -> Vec3 ((x2 -. x1) , (y2 -. y1) , (z2 -. z1) )
 	|   _ -> raise (Failure "bounding box: unexpected error.")
