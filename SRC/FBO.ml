@@ -9,9 +9,9 @@ type render_buffer_object_target = GL_RENDERBUFFER
 type render_buffer_object_internal_format = GL_DEPTH_COMPONENT | GL_DEPTH_STENCIL
 
 type frame_buffer_object_target = 
-       GL_DRAW_FRAMEBUFFER_EXT
-    |  GL_READ_FRAMEBUFFER_EXT
-    |  GL_FRAMEBUFFER_EXT
+       GL_DRAW_FRAMEBUFFER
+    |  GL_READ_FRAMEBUFFER
+    |  GL_FRAMEBUFFER
 
 type frame_buffer_object_texture_target = 
         GL_TEXTURE_1D
@@ -76,6 +76,7 @@ external glUnBindFrameBuffer : frame_buffer_object_target -> unit = "ml_glunbind
 
 external glFrameBufferTexture2D : frame_buffer_object_target -> frame_buffer_object_attachment -> frame_buffer_object_texture_target -> GL.texture_id -> int -> unit = "ml_glframebuffertexture2d" "noalloc"
 
+external glFrameBufferTexture : frame_buffer_object_target -> frame_buffer_object_attachment -> GL.texture_id -> int -> unit = "ml_glframebuffertexture"
 
  
 external glFramebufferRenderbuffer : frame_buffer_object_target -> frame_buffer_object_attachment -> render_buffer_object_target -> rbo_id -> unit = "ml_glframebufferrenderbuffer"

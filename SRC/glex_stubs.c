@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <GL/gl.h>
+#include <GL/glext.h>
 
 #include <caml/mlvalues.h>
 #include <caml/memory.h>
@@ -194,10 +195,10 @@ static const GLenum conv_internal_format_table[] = {
     GL_SRGB_ALPHA,
     GL_SRGB8_ALPHA8,
     GL_RG16F,
-    GL_R16F
+    GL_R16F,
 };
 
-t_value ml_glteximage2d_ex_native(
+t_value ml_glteximage2dwithpixels_native (
                    value _target_2d,
                    value level,
                    value _internal_format,
@@ -209,32 +210,48 @@ t_value ml_glteximage2d_ex_native(
 {
 	CAMLparam5 (_target_2d, level, _internal_format, width, height);
 	CAMLxparam3 (_pixel_data_format, _pixel_data_type, pixels);
-    	GLenum pixel_data_format = conv_pixel_data_format_table[Int_val(_pixel_data_format)];
+	GLenum pixel_data_format = conv_pixel_data_format_table[Int_val(_pixel_data_format)];
     	GLenum pixel_data_type = conv_pixel_data_type_table[Int_val(_pixel_data_type)];
     	GLenum target_2d = conv_target_2d_table[Int_val(_target_2d)];
     	GLint  internal_format = conv_internal_format_table[Int_val(_internal_format)]; 
-
-	if(Is_block(pixels))
-	{
-		printf("have pixels.\n");
-    		glTexImage2D( target_2d, Int_val(level), internal_format, Int_val(width), Int_val(height), 0, pixel_data_format, pixel_data_type, (const GLvoid *) Data_bigarray_val( Field (pixels, 0 )) );
-		
-	}
-	else
-	{
-		printf("no pixels.\n");
-    		glTexImage2D( target_2d, Int_val(level), internal_format, Int_val(width), Int_val(height), 0, pixel_data_format, pixel_data_type, NULL );
-	}
 	
+	
+    	glTexImage2D( target_2d, Int_val(level), internal_format, Int_val(width), Int_val(height), 0, pixel_data_format, pixel_data_type, (const GLvoid *) Data_bigarray_val(pixels) );
+		
 	CAMLreturn (Val_unit);
 }
 
-t_value ml_glteximage2d_ex_bytecode( value * argv, int argn )
+t_value ml_glteximage2dwithpixels_bytecode( value * argv, int argn )
 { 
-	return ml_glteximage2d_ex_native( argv[0], argv[1], argv[2], argv[3],
+	return ml_glteximage2dwithpixels_native( argv[0], argv[1], argv[2], argv[3],
                                      argv[4], argv[5], argv[6], argv[7] ); 
 }
 
+t_value ml_glteximage2dnopixels_native (
+                   value _target_2d,
+                   value level,
+                   value _internal_format,
+                   value width,
+                   value height,
+                   value _pixel_data_format,
+                   value _pixel_data_type)
+{
+	CAMLparam5 (_target_2d, level, _internal_format, width, height);
+	CAMLxparam2 (_pixel_data_format, _pixel_data_type);
+	GLenum pixel_data_format = conv_pixel_data_format_table[Int_val(_pixel_data_format)];
+    	GLenum pixel_data_type = conv_pixel_data_type_table[Int_val(_pixel_data_type)];
+    	GLenum target_2d = conv_target_2d_table[Int_val(_target_2d)];
+    	GLint  internal_format = conv_internal_format_table[Int_val(_internal_format)]; 
+	
+    	glTexImage2D( target_2d, Int_val(level), internal_format, Int_val(width), Int_val(height), 0, pixel_data_format, pixel_data_type, NULL );
+	CAMLreturn (Val_unit);
+}
+
+t_value ml_glteximage2dnopixels_bytecode( value * argv, int argn )
+{ 
+	return ml_glteximage2dnopixels_native( argv[0], argv[1], argv[2], argv[3],
+                                     argv[4], argv[5], argv[6]); 
+}
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 static const GLenum conv_texture_binding_table[] = {GL_TEXTURE_1D, GL_TEXTURE_2D, GL_TEXTURE_3D, GL_TEXTURE_CUBE_MAP};
@@ -245,5 +262,43 @@ t_value ml_glgeneratemipmapext_ex (value target)
 	GLenum _target = conv_texture_binding_table[Int_val(target)]; 
 	glGenerateMipmapEXT(_target);
 	CAMLreturn (Val_unit);	
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+static const GLenum conv_buffer_table[] = {
+  	 GL_NONE
+    ,    GL_FRONT_LEFT
+    ,    GL_FRONT_RIGHT
+    ,    GL_BACK_LEFT
+    ,    GL_BACK_RIGHT
+    ,    GL_COLOR_ATTACHMENT0
+    ,    GL_COLOR_ATTACHMENT1
+    ,    GL_COLOR_ATTACHMENT2
+    ,    GL_COLOR_ATTACHMENT3
+    ,    GL_COLOR_ATTACHMENT4
+    ,    GL_COLOR_ATTACHMENT5
+    ,    GL_COLOR_ATTACHMENT6
+    ,    GL_COLOR_ATTACHMENT7
+    ,    GL_COLOR_ATTACHMENT8
+    ,    GL_COLOR_ATTACHMENT9
+    ,    GL_COLOR_ATTACHMENT10
+    ,    GL_COLOR_ATTACHMENT11
+    ,    GL_COLOR_ATTACHMENT12
+    ,    GL_COLOR_ATTACHMENT13
+    ,    GL_COLOR_ATTACHMENT14
+    ,    GL_COLOR_ATTACHMENT15
+};
+
+t_value ml_gldrawbuffers (value n, value bufs)
+{
+	CAMLparam2 (n, bufs);
+	int _n = Int_val(n);
+	GLenum * _bufs = (GLenum *) malloc (sizeof(GLenum) * _n);
+	glDrawBuffers(_n, _bufs);
+	free(_bufs);
+	CAMLreturn (Val_unit);
 }
 

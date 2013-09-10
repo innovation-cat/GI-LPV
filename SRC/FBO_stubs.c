@@ -31,9 +31,9 @@ static const GLenum conv_frame_buffer_object_attachment_table[] = {
 };
 
 static const GLenum conv_frame_buffer_object_target_table[] = {
-    GL_DRAW_FRAMEBUFFER_EXT,
-    GL_READ_FRAMEBUFFER_EXT,
-    GL_FRAMEBUFFER_EXT
+    GL_DRAW_FRAMEBUFFER,
+    GL_READ_FRAMEBUFFER,
+    GL_FRAMEBUFFER
 };
 
 static const GLenum conv_frame_buffer_object_texture_target_table[] = {
@@ -185,6 +185,28 @@ t_value ml_glframebuffertexture2d(value _frame_buffer_object_target,
    	glFramebufferTexture2D( frame_buffer_object_target, 
                                 frame_buffer_object_attachment, 
                                 frame_buffer_object_texture_target,
+                                texture, 
+                                level);
+   	CAMLreturn (Val_unit);
+}
+
+t_value ml_glframebuffertexture(value _frame_buffer_object_target, 
+                                value _frame_buffer_object_attachment,
+                                value _texture, 
+                                value _level)
+{
+	CAMLparam4 ( _frame_buffer_object_target,
+		     _frame_buffer_object_attachment,
+		     _texture , _level);
+
+  	GLenum frame_buffer_object_target = conv_frame_buffer_object_target_table[Int_val (_frame_buffer_object_target)];
+   	GLenum frame_buffer_object_attachment = conv_frame_buffer_object_attachment_table[Int_val (_frame_buffer_object_attachment)];
+   	
+	GLuint texture = Long_val(_texture);
+	GLuint level = Long_val(_level);
+
+   	glFramebufferTexture( frame_buffer_object_target, 
+                                frame_buffer_object_attachment, 
                                 texture, 
                                 level);
    	CAMLreturn (Val_unit);

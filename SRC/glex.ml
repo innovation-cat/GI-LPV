@@ -1,7 +1,6 @@
-
 open GL
 
-type internal_format =
+type internal_format_ex =
   | GL_ALPHA
   | GL_ALPHA4
   | GL_ALPHA8
@@ -61,9 +60,38 @@ type internal_format =
   | GL_RG16F
   | GL_R16F
 
+external glShaderSources : GL.shader_object -> int -> string array option -> int array option -> unit = "ml_glshadersources"
 
-external glShaderSources : GL.shader_object -> int -> string array option -> int array option -> unit = "ml_glshadersources_ex"
+external glTexImage2DNoPixels: TexTarget.target_2d -> int -> internal_format_ex -> int -> int -> pixel_data_format -> pixel_data_type -> unit = "ml_glteximage2dnopixels_bytecode" "ml_glteximage2dnopixels_native"
 
-external glTexImage2D: GL.TexTarget.target_2d -> int -> internal_format -> int -> int -> GL.pixel_data_format -> GL.pixel_data_type ->       image_data option -> unit = "ml_glteximage2d_ex_bytecode" "ml_glteximage2d_ex_native" "noalloc"
+external glTexImage2DWithPixels: TexTarget.target_2d -> int -> internal_format_ex -> int -> int -> pixel_data_format -> pixel_data_type -> GL.image_data -> unit = "ml_glteximage2dwithpixels_bytecode" "ml_glteximage2dwithpixels_native"
 
-external glGenerateMipmapEXT : GL.BindTex.texture_binding -> unit = "ml_glgeneratemipmapext_ex"
+external glGenerateMipmapEXT : GL.BindTex.texture_binding -> unit = "ml_glgeneratemipmapext"
+
+
+
+type buffer =
+	GL_NONE
+     |  GL_FRONT_LEFT 
+     |  GL_FRONT_RIGHT
+     |  GL_BACK_LEFT
+     |  GL_BACK_RIGHT
+     |  GL_COLOR_ATTACHMENT0 
+     |  GL_COLOR_ATTACHMENT1
+     |  GL_COLOR_ATTACHMENT2
+     |  GL_COLOR_ATTACHMENT3
+     |  GL_COLOR_ATTACHMENT4
+     |  GL_COLOR_ATTACHMENT5
+     |  GL_COLOR_ATTACHMENT6
+     |  GL_COLOR_ATTACHMENT7
+     |  GL_COLOR_ATTACHMENT8 
+     |  GL_COLOR_ATTACHMENT9
+     |  GL_COLOR_ATTACHMENT10
+     |  GL_COLOR_ATTACHMENT11
+     |  GL_COLOR_ATTACHMENT12
+     |  GL_COLOR_ATTACHMENT13 
+     |  GL_COLOR_ATTACHMENT14
+     |  GL_COLOR_ATTACHMENT15
+
+external glDrawBuffers : int -> buffer array -> unit = "ml_gldrawbuffers"
+
