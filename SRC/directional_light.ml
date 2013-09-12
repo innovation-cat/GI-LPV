@@ -33,10 +33,8 @@ let create dir bbox =
 	let Vec3 (x,y,z) = calc_dim grid_bbox in
 	let zrange = z and w2 = x /. 2.0 and h2 = y /. 2.0 in
 	let projection = build_ortho_proj (-1. *. w2) w2 h2 (-1. *. h2) 0.0 zrange in
-	print_matrix rotation;
-	Printf.printf "\n";
+	(*print_matrix rotation;
 	print_matrix translation;
-	Printf.printf "\n";
-	print_matrix projection;	
+	print_matrix projection;	*)
 	{dir; grid_bbox; grid_space = {rotation; translation; projection}}
 	

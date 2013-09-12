@@ -81,7 +81,6 @@ let create_texture_2d base params width height pixels =
 	glTexParameter params.Texture_Params_2D.target (TexParam.GL_TEXTURE_MAG_FILTER params.Texture_Params_2D.mag_filter);
 	glTexParameter params.Texture_Params_2D.target (TexParam.GL_TEXTURE_MIN_FILTER params.Texture_Params_2D.min_filter);
 	
-	Printf.printf "create texture begin.\n";
 	flush stdout;
 	begin
 	match pixels with
@@ -89,7 +88,6 @@ let create_texture_2d base params width height pixels =
 	|   Some p -> Glex.glTexImage2DWithPixels TexTarget.GL_TEXTURE_2D 0 params.Texture_Params_2D.internal_format width height params.Texture_Params_2D.source_format params.Texture_Params_2D.n_type p
 	end;
 	(*glGenerateMipmapEXT base.target;*)
-	Printf.printf "create texture end.\n";
 	flush stdout;
 	glUnbindTexture base.target;
 	

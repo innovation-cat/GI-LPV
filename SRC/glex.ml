@@ -95,3 +95,12 @@ type buffer =
 
 external glDrawBuffers : int -> buffer array -> unit = "ml_gldrawbuffers"
 
+(* glsl geometry shader *)
+type geometry_type = 
+	   GL_GEOMETRY_INPUT_TYPE_EXT
+	|  GL_GEOMETRY_OUTPUT_TYPE_EXT
+	|  GL_GEOMETRY_VERTICES_OUT_EXT
+
+external glProgramParameteriEXT : GL.shader_program -> geometry_type -> int -> unit = "ml_glprogramparameteriext"
+
+external glGetActiveAttrib : GL.shader_program -> int -> int -> string = "ml_glgetactiveattrib"

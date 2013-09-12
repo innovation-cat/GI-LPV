@@ -18,12 +18,10 @@ t_value ml_glshadersources (value shader, value cnt, value str, value len)
 	CAMLlocal2 (some_str, some_len);
 	if(Is_long(str) && Is_long(len))
 	{
-		printf("both str and len are null.\n");
 		glShaderSource(Long_val(shader), Int_val(cnt), NULL, NULL);
 	}
 	else if(Is_long(str))
 	{
-		printf("only str is null.\n");
 		some_len = Field(len,0);
 		int size = Wosize_val(some_len);
 		int * length = (int *)malloc(sizeof(int) * size);
@@ -38,7 +36,6 @@ t_value ml_glshadersources (value shader, value cnt, value str, value len)
 	}
 	else if(Is_long(len))
 	{
-		printf("only len is null.\n");
 		some_str = Field(str,0);
 		int size = Wosize_val(some_str);
 		int i=0;
@@ -49,7 +46,6 @@ t_value ml_glshadersources (value shader, value cnt, value str, value len)
 			char *tmp = String_val(Field (some_str,i));
 			vp[i] = (char *)malloc(sizeof(char) * strlen(tmp));
 			memcpy(vp[i], tmp, strlen(tmp));
-			printf("%s\n", vp[i]);
 		}
 		glShaderSource(Long_val(shader), Int_val(cnt), vp, NULL);
 		for(i=0;i<size;++i)
@@ -58,7 +54,6 @@ t_value ml_glshadersources (value shader, value cnt, value str, value len)
 	}
 	else
 	{	
-		printf("both len and str are not null.\n");
 		some_str = Field(str,0);
 		some_len = Field(len,0);
 		int size = Wosize_val(some_str);
@@ -70,7 +65,6 @@ t_value ml_glshadersources (value shader, value cnt, value str, value len)
 			char *tmp = String_val(Field (some_str,i));
 			vp[i] = (char *)malloc(sizeof(char) * strlen(tmp));
 			memcpy(vp[i], tmp, strlen(tmp));
-			printf("%s\n%s\n", vp[i],tmp);
 		}
 		int size2 = Wosize_val(some_len);
 		int * length = (int *)malloc(sizeof(int) * size2);
@@ -302,3 +296,31 @@ t_value ml_gldrawbuffers (value n, value bufs)
 	CAMLreturn (Val_unit);
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+static const GLenum conv_geometry_type_table[] = {
+	GL_GEOMETRY_INPUT_TYPE_EXT
+,	GL_GEOMETRY_OUTPUT_TYPE_EXT
+,	GL_GEOMETRY_VERTICES_OUT_EXT
+};
+
+t_value ml_glprogramparameteriext (value program, value type, value v)
+{
+	CAMLparam3 (program, type, v);
+	GLenum pname = conv_geometry_type_table[Int_val(type)];
+	glProgramParameteriEXT(Long_val(program), pname, Int_val(v));
+	CAMLreturn (Val_unit);
+}
+
+t_value ml_glgetactiveattrib (value program, value index, value bufsize)
+{
+	CAMLparam3 (program, index, bufsize);
+	CAMLlocal1 (name);
+	GLsizei len;
+	GLint size;
+	GLenum type;
+	char *buffer = (char *)malloc (sizeof(char) * bufsize);
+	glGetActiveAttrib (Long_val(program), Int_val(index), Int_val(bufsize), &len, &size, &type, buffer);
+	name = caml_copy_string (buffer);
+	CAMLreturn (name);
+}

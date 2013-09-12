@@ -37,6 +37,8 @@ let create_rsm width height =
 	
 	(* create render buffer object *)
 	let depth_buffer_params = Depth_buffer.init_depth_buffer_param in
+	let depthbuffer = Depth_buffer.create depth_buffer_params width height in  
+(*	let depth_buffer_params = Depth_buffer.init_depth_buffer_param in
 	let depth_buffer_id = FBO.glGenRenderBuffers 1 in
 	glBindRenderBuffer FBO.GL_RENDERBUFFER depth_buffer_id.(0);
 	
@@ -45,7 +47,7 @@ let create_rsm width height =
 	else 
 		FBO.glRenderbufferStorage FBO.GL_RENDERBUFFER depth_buffer_params.Depth_buffer._format width height;
 	let depthbuffer = {Depth_buffer.id = depth_buffer_id.(0); Depth_buffer.param = depth_buffer_params} in
-
+*)
 	(* create framebuffer, and make depth_buffer attach to depth frame buffer, while normal_tex, color_tex and depth_tex *)
 	(* are attach to color frame buffer                                                                                  *)
 	let textures = 	{  

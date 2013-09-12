@@ -66,7 +66,6 @@ let create_render_texture textures dp =
 			     else
 				glFramebufferRenderbuffer FBO.GL_FRAMEBUFFER FBO.GL_DEPTH_ATTACHMENT FBO.GL_RENDERBUFFER p.Depth_buffer.id
 	end;
-	
 	glUnBindFrameBuffer FBO.GL_FRAMEBUFFER
-
+	
 	
