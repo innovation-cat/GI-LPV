@@ -12,6 +12,11 @@ type render_textures = {
 				mutable depth_tex_list : GL.texture_id array
 		       }
 
+type t = {
+		mutable id : FBO.fbo_id;
+		mutable rt : render_textures;
+	 }
+
 let draw_buffer_samples = [| Glex.GL_COLOR_ATTACHMENT0 
    ;   Glex.GL_COLOR_ATTACHMENT1
    ;   Glex.GL_COLOR_ATTACHMENT2
@@ -48,7 +53,7 @@ let draw_buffer_to_frame_buffer_attachment = [| FBO.GL_COLOR_ATTACHMENT0
 let create_draw_buffers n = Array.sub draw_buffer_samples 0 n
 
 (* render_textures -> Depth_buffer.depth_buffer -> unit *)
-let create_render_texture textures dp = 
+let create textures dp = 
 	let fbo = FBO.glGenFrameBuffers 1 in
 	FBO.glBindFrameBuffer FBO.GL_FRAMEBUFFER fbo.(0);
 	let size = Array.length textures.tex_list in
@@ -66,6 +71,7 @@ let create_render_texture textures dp =
 			     else
 				glFramebufferRenderbuffer FBO.GL_FRAMEBUFFER FBO.GL_DEPTH_ATTACHMENT FBO.GL_RENDERBUFFER p.Depth_buffer.id
 	end;
-	glUnBindFrameBuffer FBO.GL_FRAMEBUFFER
+	glUnBindFrameBuffer FBO.GL_FRAMEBUFFER;
+	fbo.(0)
 	
 	

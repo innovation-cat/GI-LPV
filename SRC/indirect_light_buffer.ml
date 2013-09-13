@@ -35,14 +35,14 @@ let create width height =
 				depth_tex_list = [||];
 			}
 	in
-	Render_texture.create_render_texture textures (Some depthbuffer);
+	Render_texture.create textures (Some depthbuffer);
 
 	let textures = {
 				tex_list = [| blur_buffer_base.Texture.tex_id |];
 				depth_tex_list = [||];
 		       }
 	in
-	Render_texture.create_render_texture textures None;
+	Render_texture.create textures None;
 	{
 		width; height; 
 		light_buffer = indirect_light_buffer_base.Texture.tex_id;
@@ -50,7 +50,7 @@ let create width height =
 		blur_buffer = blur_buffer_base.Texture.tex_id;
 	}
 ;;
-
+(*
 let create_indirect_light_shader0 () = 
 	(* indirect light shader *)
 	let vertex_shader = glCreateShader GL_VERTEX_SHADER in
@@ -161,11 +161,20 @@ let create_blur_shader () =
 	let shader_info = {vertex_shader; fragment_shader; geometry_shader; program;attributes} in
 	Glsl_shader.insert_shader_list "blur" shader_info;
 ;;	
+*)
+let create_shader () =
+	let indirect_light_vertex_shader0 = "../shader/indirect_light.vp" in
+	let indirect_light_fragment_shader0 = "../shader/indirect_light.fp" in
+	let shader_info = Glsl_shader.create indirect_light_vertex_shader0 indirect_light_fragment_shader0 None None None in
+	Glsl_shader.insert_shader_list "indirect_light0" shader_info;
 
-let create_shader () = 
-	Printf.printf "begin.\n";
-	flush stdout;
-	create_indirect_light_shader0 ();
-	create_indirect_light_shader1 ();
-	create_blur_shader ()
+	let indirect_light_vertex_shader1 = "../shader/indirect_light.vp" in
+	let indirect_light_fragment_shader1 = "../shader/indirect_light.fp" in
+	let shader_info = Glsl_shader.create indirect_light_vertex_shader1 indirect_light_fragment_shader1 None None (Some "#define DAMPEN") in
+	Glsl_shader.insert_shader_list "indirect_light1" shader_info;
+	
+	let blur_vertex_shader = "../shader/blur.vp" in
+	let blur_fragment_shader = "../shader/blur.fp" in
+	let shader_info = Glsl_shader.create blur_vertex_shader blur_fragment_shader None None None in
+	Glsl_shader.insert_shader_list "blur" shader_info
 ;;

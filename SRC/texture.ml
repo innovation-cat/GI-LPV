@@ -81,16 +81,39 @@ let create_texture_2d base params width height pixels =
 	glTexParameter params.Texture_Params_2D.target (TexParam.GL_TEXTURE_MAG_FILTER params.Texture_Params_2D.mag_filter);
 	glTexParameter params.Texture_Params_2D.target (TexParam.GL_TEXTURE_MIN_FILTER params.Texture_Params_2D.min_filter);
 	
-	flush stdout;
 	begin
 	match pixels with
 	    None -> Glex.glTexImage2DNoPixels TexTarget.GL_TEXTURE_2D 0 params.Texture_Params_2D.internal_format width height params.Texture_Params_2D.source_format params.Texture_Params_2D.n_type
 	|   Some p -> Glex.glTexImage2DWithPixels TexTarget.GL_TEXTURE_2D 0 params.Texture_Params_2D.internal_format width height params.Texture_Params_2D.source_format params.Texture_Params_2D.n_type p
 	end;
 	(*glGenerateMipmapEXT base.target;*)
-	flush stdout;
 	glUnbindTexture base.target;
-	
-	texture_list := Resource_Map.add base.name (base,params) !texture_list
+	texture_list := Resource_Map.add base.name (Texture_2D (base,params)) (!texture_list)
 ;;
+
+
+(* parameters:                                                                         *)
+(* 	base: {texture_id; target; name}                                               *)
+(*	parameter:                                                                     *)
+(*	width, height, depth: 3-d of 3d texture                                        *)
+(*  	pixels: optional                                                               *)
+let create_texture_3d base params width height depth pixels =  
+	glBindTexture base.target base.tex_id;
+	glPixelStorei GL_UNPACK_ALIGNMENT 1;
+	glTexParameter params.Texture_Params_3D.target (TexParam.GL_TEXTURE_WRAP_S params.Texture_Params_3D.wrap_s);
+	glTexParameter params.Texture_Params_3D.target (TexParam.GL_TEXTURE_WRAP_T params.Texture_Params_3D.wrap_t);
+	glTexParameter params.Texture_Params_3D.target (TexParam.GL_TEXTURE_WRAP_R params.Texture_Params_3D.wrap_r);
+	glTexParameter params.Texture_Params_3D.target (TexParam.GL_TEXTURE_MAG_FILTER params.Texture_Params_3D.mag_filter);
+	glTexParameter params.Texture_Params_3D.target (TexParam.GL_TEXTURE_MIN_FILTER params.Texture_Params_3D.min_filter);
 	
+	begin
+	match pixels with
+	    None -> Glex.glTexImage3DNoPixels TexTarget.GL_TEXTURE_3D 0 params.Texture_Params_3D.internal_format width height depth params.Texture_Params_3D.source_format params.Texture_Params_3D.n_type
+	|   Some p -> Glex.glTexImage3DWithPixels TexTarget.GL_TEXTURE_3D 0 params.Texture_Params_3D.internal_format width height depth params.Texture_Params_3D.source_format params.Texture_Params_3D.n_type p
+	end;
+	if params.Texture_Params_3D.min_filter = GL.Min.GL_LINEAR_MIPMAP_LINEAR then
+		Glex.glGenerateMipmapEXT base.target;
+	glUnbindTexture base.target;
+	texture_list := Resource_Map.add base.name (Texture_3D (base,params)) (!texture_list)
+;;
+

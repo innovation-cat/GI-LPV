@@ -131,6 +131,11 @@ static const GLenum conv_target_2d_table[] = {
     GL_PROXY_TEXTURE_CUBE_MAP,
 };
 
+static const GLenum conv_target_3d_table[] = {
+    GL_TEXTURE_3D,
+    GL_PROXY_TEXTURE_3D,
+};
+
 static const GLenum conv_internal_format_table[] = {
     GL_ALPHA,
     GL_ALPHA4,
@@ -190,6 +195,7 @@ static const GLenum conv_internal_format_table[] = {
     GL_SRGB8_ALPHA8,
     GL_RG16F,
     GL_R16F,
+    GL_RGBA16F,
 };
 
 t_value ml_glteximage2dwithpixels_native (
@@ -246,11 +252,68 @@ t_value ml_glteximage2dnopixels_bytecode( value * argv, int argn )
 	return ml_glteximage2dnopixels_native( argv[0], argv[1], argv[2], argv[3],
                                      argv[4], argv[5], argv[6]); 
 }
+
+t_value ml_glteximage3dwithpixels_native (
+                   value _target_3d,
+                   value level,
+                   value _internal_format,
+                   value width,
+                   value height,
+		   value depth,
+                   value _pixel_data_format,
+                   value _pixel_data_type,
+                   value pixels )
+{
+	CAMLparam5 (_target_3d, level, _internal_format, width, height);
+	CAMLxparam4 (depth, _pixel_data_format, _pixel_data_type, pixels);
+	GLenum pixel_data_format = conv_pixel_data_format_table[Int_val(_pixel_data_format)];
+    	GLenum pixel_data_type = conv_pixel_data_type_table[Int_val(_pixel_data_type)];
+    	GLenum target_3d = conv_target_3d_table[Int_val(_target_3d)];
+    	GLint  internal_format = conv_internal_format_table[Int_val(_internal_format)]; 
+	
+	
+    	glTexImage3D( target_3d, Int_val(level), internal_format, Int_val(width), Int_val(height), Int_val(depth), 0, pixel_data_format, pixel_data_type, (const GLvoid *) Data_bigarray_val(pixels) );
+		
+	CAMLreturn (Val_unit);
+}
+
+t_value ml_glteximage3dwithpixels_bytecode( value * argv, int argn )
+{ 
+	return ml_glteximage3dwithpixels_native( argv[0], argv[1], argv[2], argv[3],
+                                     argv[4], argv[5], argv[6], argv[7], argv[8]); 
+}
+
+t_value ml_glteximage3dnopixels_native (
+                   value _target_3d,
+                   value level,
+                   value _internal_format,
+                   value width,
+                   value height,
+		   value depth,
+                   value _pixel_data_format,
+                   value _pixel_data_type)
+{
+	CAMLparam5 (_target_3d, level, _internal_format, width, height);
+	CAMLxparam3 (depth, _pixel_data_format, _pixel_data_type);
+	GLenum pixel_data_format = conv_pixel_data_format_table[Int_val(_pixel_data_format)];
+    	GLenum pixel_data_type = conv_pixel_data_type_table[Int_val(_pixel_data_type)];
+    	GLenum target_3d = conv_target_3d_table[Int_val(_target_3d)];
+    	GLint  internal_format = conv_internal_format_table[Int_val(_internal_format)]; 
+	
+    	glTexImage3D( target_3d, Int_val(level), internal_format, Int_val(width), Int_val(height), Int_val(depth),  0, pixel_data_format, pixel_data_type, NULL );
+	CAMLreturn (Val_unit);
+}
+
+t_value ml_glteximage3dnopixels_bytecode( value * argv, int argn )
+{ 
+	return ml_glteximage3dnopixels_native( argv[0], argv[1], argv[2], argv[3],
+                                     argv[4], argv[5], argv[6], argv[7]); 
+}
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 static const GLenum conv_texture_binding_table[] = {GL_TEXTURE_1D, GL_TEXTURE_2D, GL_TEXTURE_3D, GL_TEXTURE_CUBE_MAP};
 
-t_value ml_glgeneratemipmapext_ex (value target)
+t_value ml_glgeneratemipmapext (value target)
 {
 	CAMLparam1 (target);
 	GLenum _target = conv_texture_binding_table[Int_val(target)]; 

@@ -59,12 +59,17 @@ type internal_format_ex =
   | GL_SRGB8_ALPHA8
   | GL_RG16F
   | GL_R16F
+  | GL_RGBA16F
 
 external glShaderSources : GL.shader_object -> int -> string array option -> int array option -> unit = "ml_glshadersources"
 
 external glTexImage2DNoPixels: TexTarget.target_2d -> int -> internal_format_ex -> int -> int -> pixel_data_format -> pixel_data_type -> unit = "ml_glteximage2dnopixels_bytecode" "ml_glteximage2dnopixels_native"
 
 external glTexImage2DWithPixels: TexTarget.target_2d -> int -> internal_format_ex -> int -> int -> pixel_data_format -> pixel_data_type -> GL.image_data -> unit = "ml_glteximage2dwithpixels_bytecode" "ml_glteximage2dwithpixels_native"
+
+external glTexImage3DNoPixels: TexTarget.target_3d -> int -> internal_format_ex -> int -> int -> int -> pixel_data_format -> pixel_data_type -> unit = "ml_glteximage3dnopixels_bytecode" "ml_glteximage3dnopixels_native"
+
+external glTexImage3DWithPixels: TexTarget.target_3d -> int -> internal_format_ex -> int -> int -> int -> pixel_data_format -> pixel_data_type -> GL.image_data -> unit = "ml_glteximage3dwithpixels_bytecode" "ml_glteximage3dwithpixels_native"
 
 external glGenerateMipmapEXT : GL.BindTex.texture_binding -> unit = "ml_glgeneratemipmapext"
 

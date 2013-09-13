@@ -55,4 +55,4 @@ let create_rsm width height =
 				 Render_texture.depth_tex_list = [||];
 			}
 	in
-	Render_texture.create_render_texture textures (Some depthbuffer)
+	Render_texture.create textures (Some depthbuffer)

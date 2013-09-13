@@ -32,7 +32,7 @@ let create width height near_plane far_plane blocker_buffer_width =
 				depth_tex_list = [||];
 			}
 	in
-	Render_texture.create_render_texture textures (Some depthbuffer);
+	Render_texture.create textures (Some depthbuffer);
 
 	let aspect = (float width) /. (float height) in
 	let blocker_buffer_height = Int32.to_int (Int32.of_float ((float blocker_buffer_width) /. aspect +. 0.5)) in
@@ -46,7 +46,7 @@ let create width height near_plane far_plane blocker_buffer_width =
 				depth_tex_list = [||];
 		       }
 	in
-	Render_texture.create_render_texture textures None;
+	Render_texture.create textures None;
 	{
 		width; height; blocker_buffer_width; blocker_buffer_height; near_far_plane;
 		depth_normal = depth_normal_base.Texture.tex_id;
@@ -55,7 +55,17 @@ let create width height near_plane far_plane blocker_buffer_width =
 	}
 
 let create_shader () = 
-	(* *)
+	let depth_normal_vertex_shader_file = "../shader/depth_normal.vp" in
+	let depth_normal_fragment_shader_file = "../shader/depth_normal.fp" in
+	let shader_info = Glsl_shader.create depth_normal_vertex_shader_file depth_normal_fragment_shader_file None None None in
+	Glsl_shader.insert_shader_list "depth_normal" shader_info;
+
+	let resample_vertex_shader_file = "../shader/resample.vp" in
+	let resample_fragment_shader_file = "../shader/resample.fp" in
+	let shader_info = Glsl_shader.create resample_vertex_shader_file resample_fragment_shader_file None None None in
+	Glsl_shader.insert_shader_list "resample" shader_info
+;;
+	(* 
 	let vertex_shader = glCreateShader GL_VERTEX_SHADER in
 	let sc = open_in "../shader/depth_normal.vp" in
 	let size = in_channel_length sc in
@@ -118,6 +128,4 @@ let create_shader () =
 	let geometry_shader = glCreateShader GL_GEOMETRY_SHADER in
 	let shader_info = {vertex_shader; fragment_shader; geometry_shader; program;attributes} in
 	Glsl_shader.insert_shader_list "resample" shader_info;
-	
-	
-	 	
+*)	
