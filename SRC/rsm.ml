@@ -17,7 +17,7 @@ type t = {
 		mutable rt          : FBO.fbo_id;		
 	 }
 
-let create_rsm width height = 
+let create width height = 
 	let normal_base = {Texture.tex_id = glGenTexture (); Texture.target = BindTex.GL_TEXTURE_2D ; Texture.name = "rsm_normal_tex"} in
 	let normal_params = {Texture.init_param_2d with Texture_Params_2D.min_filter = GL.Min.GL_NEAREST; 
 					 Texture_Params_2D.mag_filter = GL.Mag.GL_NEAREST;
@@ -55,4 +55,12 @@ let create_rsm width height =
 				 Render_texture.depth_tex_list = [||];
 			}
 	in
-	Render_texture.create textures (Some depthbuffer)
+	let rt = Render_texture.create textures (Some depthbuffer) in
+	{
+	  width; height; 
+	  normal_tex = normal_base.Texture.tex_id; 
+          color_tex = color_base.Texture.tex_id;
+	  depth_tex = depth_base.Texture.tex_id;
+	  depthbuffer = depthbuffer.Depth_buffer.id; rt;
+	}
+	

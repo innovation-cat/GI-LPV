@@ -1,15 +1,27 @@
 (* create light volume *)
 open GL
-open Glex
+open FBO
+open Glsl_shader
 open Texture
-open Depth_buffer
 open Render_texture
 
 type t = {
-		mutable red_tex   : GL.texture_id array;
-		mutable green_tex : GL.texture_id array;
-		mutable blue_tex  : GL.texture_id array;
-		mutable fbo_grid  : FBO.fbo_id array;
+		mutable red_tex     : GL.texture_id array;
+		mutable green_tex   : GL.texture_id array;
+		mutable blue_tex    : GL.texture_id array;
+		mutable fbo_grid    : FBO.fbo_id array;
+		mutable vpls        : GL_buffer.vertex_buffer;
+		mutable slices      : GL_buffer.vertex_buffer;
+		mutable _light      : Directional_light.light;		
+		mutable iteration   : int;
+		mutable dim_x       : int;
+		mutable dim_y       : int;
+		mutable dim_z       : int;
+		mutable cell_size   : Vector.vec;
+		mutable grid_origin : Vector.vec;
+		mutable gv0         : Geometry_volume.t;
+		mutable gv1         : Geometry_volume.t;
+		mutable gv2         : Geometry_volume.t;
 	 }
 
 let create_shader () = 
@@ -44,7 +56,7 @@ let create_shader () =
 
 let create_grid_textures () =
 	let grid_tex_params = Texture.init_param_3d in
-	let red_tex = Array.mapi (fun i x  ->   let base = {tex_id = glGenTexture (); target = GL.BindTex.GL_TEXTURE_3D; name = let tmp = Printf.sprintf "light_intensity_red_%d" i in tmp} in 
+	let red_tex = Array.mapi (fun i x  ->   let base = {Texture.tex_id = GL.glGenTexture (); Texture.target = GL.BindTex.GL_TEXTURE_3D; Texture.name = let tmp = Printf.sprintf "light_intensity_red_%d" i in tmp} in 
 						let params = {grid_tex_params with Texture.Texture_Params_3D.min_filter = GL.Min.GL_NEAREST; 
 								 Texture.Texture_Params_3D.mag_filter = GL.Mag.GL_NEAREST;
 		    		         			 Texture.Texture_Params_3D.source_format = GL.GL_RGBA;
@@ -52,10 +64,10 @@ let create_grid_textures () =
 					 			 Texture.Texture_Params_3D.n_type = GL.GL_FLOAT}
 						in	
 						Texture.create_texture_3d base params 16 16 16 None;
-						base.tex_id
+						base.Texture.tex_id
 				 ) [|0;0;0|] in
 
-	let green_tex = Array.mapi (fun i x ->  let base = {tex_id = glGenTexture (); target = GL.BindTex.GL_TEXTURE_3D; name = let tmp = Printf.sprintf "light_intensity_green_%d" i in tmp} in 
+	let green_tex = Array.mapi (fun i x ->  let base = {Texture.tex_id = GL.glGenTexture (); Texture.target = GL.BindTex.GL_TEXTURE_3D; Texture.name = let tmp = Printf.sprintf "light_intensity_green_%d" i in tmp} in 
 						let params = {grid_tex_params with Texture.Texture_Params_3D.min_filter = GL.Min.GL_NEAREST; 
 								 Texture.Texture_Params_3D.mag_filter = GL.Mag.GL_NEAREST;
 		    		         			 Texture.Texture_Params_3D.source_format = GL.GL_RGBA;
@@ -63,10 +75,10 @@ let create_grid_textures () =
 					 			 Texture.Texture_Params_3D.n_type = GL.GL_FLOAT}
 						in	
 						Texture.create_texture_3d base params 16 16 16 None;
-						base.tex_id
+						base.Texture.tex_id
 				   ) [|0;0;0|] in
 
-	let blue_tex = Array.mapi (fun i x  ->  let base = {tex_id = glGenTexture (); target = GL.BindTex.GL_TEXTURE_3D; name = let tmp = Printf.sprintf "light_intensity_blue_%d" i in tmp} in 
+	let blue_tex = Array.mapi (fun i x  ->  let base = {Texture.tex_id = GL.glGenTexture (); Texture.target = GL.BindTex.GL_TEXTURE_3D; Texture.name = let tmp = Printf.sprintf "light_intensity_blue_%d" i in tmp} in 
 						let params = {grid_tex_params with Texture.Texture_Params_3D.min_filter = GL.Min.GL_NEAREST; 
 								 Texture.Texture_Params_3D.mag_filter = GL.Mag.GL_NEAREST;
 		    		         			 Texture.Texture_Params_3D.source_format = GL.GL_RGBA;
@@ -74,11 +86,16 @@ let create_grid_textures () =
 					 			 Texture.Texture_Params_3D.n_type = GL.GL_FLOAT}
 						in	
 						Texture.create_texture_3d base params 16 16 16 None;
-						base.tex_id
+						base.Texture.tex_id
 				  ) [|0;0;0|] in
 	(red_tex, green_tex, blue_tex)
 ;;
 
+(* parameters:                                                               *)
+(* 	red_tex array, green_tex array, blue_tex array                       *)
+(*                                                                           *)
+(* return:                                                                   *)
+(*	fbo_id array                                                         *)
 let create_grid_rt red_tex green_tex blue_tex = 
 	Array.map (fun (red,green,blue) -> let textures = {Render_texture.tex_list=[|red;green;blue|]; Render_texture.depth_tex_list=[||]} in
 					     Render_texture.create textures None
@@ -86,7 +103,47 @@ let create_grid_rt red_tex green_tex blue_tex =
 	[|(red_tex.(0),green_tex.(0),blue_tex.(0)); (red_tex.(1),green_tex.(1),blue_tex.(1)); (red_tex.(2),green_tex.(2),blue_tex.(2))|] 
 ;;
 
-let create bbox dim_x dim_y dim_z width height light = 
-	create_shader ();
-	create_grid_textures ()
+
+let create_slices () = 
+	let pos_array = [| 0.0; 0.0; 1.0; 0.0; 0.0; 1.0; 1.0; 0.0; 1.0; 1.0; 0.0; 1.0 |] in
+	let decl_array = [|{GL_buffer.field = GL_buffer.VEC2F; GL_buffer.binding_name = "position"}|] in
+	let vb_info = GL_buffer.create_vertex_buffer "slices" decl_array 6 VBO.GL_STATIC_DRAW in
+	Printf.printf "%d\n" vb_info.GL_buffer.buffer_size;
+	GL_buffer.insert_buffer_list "slices" vb_info;
+	GL_buffer.bind_vertex_buffer vb_info.GL_buffer.buf;
+	GL_buffer.set_vertex_buffer_data 0 vb_info.GL_buffer.buffer_size pos_array;
+	vb_info
+	(* unbind *)
+;;
+
+let create_vpls width height = 
+	let decl_array = [|{GL_buffer.field = GL_buffer.VEC2F; GL_buffer.binding_name = "position"}|] in
+	let vb_info = GL_buffer.create_vertex_buffer "vpls" decl_array 1 VBO.GL_STATIC_DRAW in
+	Printf.printf "%d\n" vb_info.GL_buffer.buffer_size;
+	GL_buffer.insert_buffer_list "vpls" vb_info;
+	GL_buffer.bind_vertex_buffer vb_info.GL_buffer.buf;
+	GL_buffer.set_vertex_buffer_data 0 vb_info.GL_buffer.buffer_size [|0.0; 0.0|];
+	vb_info
+	(* unbind *)
+;;
+
+let create bbox dim_x dim_y dim_z width height _light = 
+	let iteration = 8 in
+	let Vector.Vec3 (x, y, z) = Bounding_box.calc_dim bbox in
+	let cell_size = Vector.Vec3 ( x/.(float dim_x) , y/.(float dim_y) , z/.(float dim_z)) in
+	(*create_shader ();*)
+	let (red_tex, green_tex, blue_tex) = create_grid_textures () in
+	let fbo_grid = create_grid_rt red_tex green_tex blue_tex in
+	let slices = create_slices () in
+	let vpls = create_vpls width height in
+	let gv0 = Geometry_volume.create cell_size (dim_x+1) (dim_y+1) (dim_z+1) in
+	let gv1 = Geometry_volume.copy_gv0 gv0 in
+	let gv2 = Geometry_volume.copy_gv1 gv1 in
+	{
+		red_tex; green_tex; blue_tex; fbo_grid; slices; vpls; _light; iteration;
+		dim_x;dim_y;dim_z;
+		cell_size;
+		grid_origin = bbox.Bounding_box.min;
+		gv0;gv1;gv2;
+	}
 ;;
