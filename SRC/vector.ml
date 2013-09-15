@@ -103,7 +103,7 @@ let mult m1 m2 =
 	   m1.(2) *. m2.(12) +. m1.(6) *. m2.(13) +. m1.(10) *. m2.(14) +. m1.(14) *. m2.(15);
 	   m1.(3) *. m2.(12) +. m1.(7) *. m2.(13) +. m1.(11) *. m2.(14) +. m1.(15) *. m2.(15)|]
 
-let pi_over_360 = 1.0/.360.0;;
+let pi_over_360 = 3.1415926/.360.0;;
 
 let build_persp_proj fov aspect znear zfar = 
 	let h = 1. /. tan (fov *. pi_over_360) in	

@@ -9,15 +9,35 @@ open Glsl_shader
 type t = {
 		mutable width                 : int;
 		mutable height                : int;
-	(*	mutable rt           	      : FBO.fbo_id;*)
-		mutable depth_normal 	      : GL.texture_id;
-		mutable depth_buffer 	      : FBO.rbo_id;
-	(*	mutable blocker_rt   	      : FBO.fbo_id;*)
-		mutable blocker_depth_normal  : GL.texture_id;
+		mutable rt           	      : FBO.fbo_id;
+		mutable depth_normal 	      : GL.texture_id option;
+		mutable depth_buffer 	      : FBO.rbo_id option;
+		mutable blocker_rt   	      : FBO.fbo_id;
+		mutable blocker_depth_normal  : GL.texture_id option;
 		mutable blocker_buffer_width  : int;
 		mutable blocker_buffer_height : int;
 		mutable near_far_plane        : Vector.vec
 	 }
+
+(*
+let init_depth_normal_buffer = {width=0; height=0; blocker_buffer_width=0; blocker_buffer_height=0; depth_normal=None;
+				blocker_depth_normal=None; depth_buffer=None; blocker_rt=None; rt=None; 
+				near_far_plane=Vector.Vec3 (0.0, 0.0, 0.0)}
+;;
+*)
+
+let create_shader () = 
+	let depth_normal_vertex_shader_file = "../shader/depth_normal.vp" in
+	let depth_normal_fragment_shader_file = "../shader/depth_normal.fp" in
+	let shader_info = Glsl_shader.create depth_normal_vertex_shader_file depth_normal_fragment_shader_file None None None in
+	Glsl_shader.insert_shader_list "depth_normal" shader_info;
+
+	let resample_vertex_shader_file = "../shader/resample.vp" in
+	let resample_fragment_shader_file = "../shader/resample.fp" in
+	let shader_info = Glsl_shader.create resample_vertex_shader_file resample_fragment_shader_file None None None in
+	Glsl_shader.insert_shader_list "resample" shader_info
+;;
+
 
 let create width height near_plane far_plane blocker_buffer_width = 
 	let near_far_plane = Vec2 (near_plane, far_plane -. near_plane) in
@@ -32,7 +52,7 @@ let create width height near_plane far_plane blocker_buffer_width =
 				depth_tex_list = [||];
 			}
 	in
-	Render_texture.create textures (Some depthbuffer);
+	let rt = Render_texture.create textures (Some depthbuffer) in
 
 	let aspect = (float width) /. (float height) in
 	let blocker_buffer_height = Int32.to_int (Int32.of_float ((float blocker_buffer_width) /. aspect +. 0.5)) in
@@ -46,86 +66,13 @@ let create width height near_plane far_plane blocker_buffer_width =
 				depth_tex_list = [||];
 		       }
 	in
-	Render_texture.create textures None;
+	let blocker_rt = Render_texture.create textures None in
+	create_shader ();
 	{
 		width; height; blocker_buffer_width; blocker_buffer_height; near_far_plane;
-		depth_normal = depth_normal_base.Texture.tex_id;
-		depth_buffer = depthbuffer.Depth_buffer.id;
-		blocker_depth_normal = blocker_depth_normal_base.Texture.tex_id;
+		depth_normal = Some depth_normal_base.Texture.tex_id;
+		depth_buffer = Some depthbuffer.Depth_buffer.id;
+		blocker_depth_normal = Some blocker_depth_normal_base.Texture.tex_id;
+		rt; blocker_rt;
 	}
-
-let create_shader () = 
-	let depth_normal_vertex_shader_file = "../shader/depth_normal.vp" in
-	let depth_normal_fragment_shader_file = "../shader/depth_normal.fp" in
-	let shader_info = Glsl_shader.create depth_normal_vertex_shader_file depth_normal_fragment_shader_file None None None in
-	Glsl_shader.insert_shader_list "depth_normal" shader_info;
-
-	let resample_vertex_shader_file = "../shader/resample.vp" in
-	let resample_fragment_shader_file = "../shader/resample.fp" in
-	let shader_info = Glsl_shader.create resample_vertex_shader_file resample_fragment_shader_file None None None in
-	Glsl_shader.insert_shader_list "resample" shader_info
 ;;
-	(* 
-	let vertex_shader = glCreateShader GL_VERTEX_SHADER in
-	let sc = open_in "../shader/depth_normal.vp" in
-	let size = in_channel_length sc in
-	let vertex_shader_src = String.create size in
-	ignore (input sc vertex_shader_src 0 size);
-	glShaderSource vertex_shader vertex_shader_src;
-	close_in sc;
-
-	let fragment_shader = glCreateShader GL_FRAGMENT_SHADER in
-	let sc = open_in "../shader/depth_normal.fp" in
-	let size = in_channel_length sc in
-	let fragment_shader_src = String.create size in
-	ignore (input sc fragment_shader_src 0 size);
-	glShaderSource fragment_shader fragment_shader_src;
-	close_in sc;
-
-	glCompileShader vertex_shader;
-	glGetShaderCompileStatus_exn vertex_shader;
-	glCompileShader fragment_shader;
-	glGetShaderCompileStatus_exn fragment_shader;
-
-	let program = glCreateProgram () in
-	glAttachShader program vertex_shader;
-	glAttachShader program fragment_shader;
-	glLinkProgram program;
-	let attributes = [|{Glsl_shader.name = "normal"; Glsl_shader.value = glGetAttribLocation program "normal"};
-			   {Glsl_shader.name = "position"; Glsl_shader.value = glGetAttribLocation program "position"} |]
-	in
-	let geometry_shader = glCreateShader GL_GEOMETRY_SHADER in
-	let shader_info = {vertex_shader; fragment_shader; geometry_shader; program;attributes} in
-	Glsl_shader.insert_shader_list "depth_normal" shader_info;
-
-	(* load resample shader source *)
-	let vertex_shader = glCreateShader GL_VERTEX_SHADER in
-	let sc = open_in "../shader/resample.vp" in
-	let size = in_channel_length sc in
-	let vertex_shader_src = String.create size in
-	ignore (input sc vertex_shader_src 0 size);
-	glShaderSource vertex_shader vertex_shader_src;
-	close_in sc;
-
-	let fragment_shader = glCreateShader GL_FRAGMENT_SHADER in
-	let sc = open_in "../shader/resample.fp" in
-	let size = in_channel_length sc in
-	let fragment_shader_src = String.create size in
-	ignore (input sc fragment_shader_src 0 size);
-	glShaderSource fragment_shader fragment_shader_src;
-	close_in sc;
-
-	glCompileShader vertex_shader;
-	glGetShaderCompileStatus_exn vertex_shader;
-	glCompileShader fragment_shader;
-	glGetShaderCompileStatus_exn fragment_shader;
-
-	let program = glCreateProgram () in
-	glAttachShader program vertex_shader;
-	glAttachShader program fragment_shader;
-	glLinkProgram program;
-	let attributes = [| {Glsl_shader.name = "position"; Glsl_shader.value = glGetAttribLocation program "position"} |] in
-	let geometry_shader = glCreateShader GL_GEOMETRY_SHADER in
-	let shader_info = {vertex_shader; fragment_shader; geometry_shader; program;attributes} in
-	Glsl_shader.insert_shader_list "resample" shader_info;
-*)	

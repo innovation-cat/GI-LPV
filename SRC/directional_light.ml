@@ -15,6 +15,14 @@ type light = {
 
 let (|>) x f = f x
 
+let init = { dir = Vector.Vec3 (0.0, 0.0, 1.0);
+	     grid_bbox = Bounding_box.init;
+	     grid_space = { rotation = Vector.build_identity_matrix (); 
+			    translation = Vector.build_identity_matrix (); 
+			    projection = Vector.build_identity_matrix ()};
+	   }
+
+
 let create dir bbox =
 	let dir = normalize dir in
 	let grid_bbox = bbox in
@@ -37,4 +45,4 @@ let create dir bbox =
 	print_matrix translation;
 	print_matrix projection;	*)
 	{dir; grid_bbox; grid_space = {rotation; translation; projection}}
-	
+;;	

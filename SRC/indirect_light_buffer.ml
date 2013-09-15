@@ -10,12 +10,31 @@ open Glsl_shader
 type t = {
 		mutable width                 : int;
 		mutable height                : int;
-	(*	mutable rt           	      : FBO.fbo_id;*)
+		mutable indirect_light_rt     : FBO.fbo_id;
 		mutable light_buffer 	      : GL.texture_id;
 		mutable depth_buffer 	      : FBO.rbo_id;
-	(*	mutable blocker_rt   	      : FBO.fbo_id;*)
+		mutable blur_rt   	      : FBO.fbo_id;
 		mutable blur_buffer           : GL.texture_id;
 	 }
+
+
+let create_shader () =
+	let indirect_light_vertex_shader0 = "../shader/indirect_light.vp" in
+	let indirect_light_fragment_shader0 = "../shader/indirect_light.fp" in
+	let shader_info = Glsl_shader.create indirect_light_vertex_shader0 indirect_light_fragment_shader0 None None None in
+	Glsl_shader.insert_shader_list "indirect_light0" shader_info;
+
+	let indirect_light_vertex_shader1 = "../shader/indirect_light.vp" in
+	let indirect_light_fragment_shader1 = "../shader/indirect_light.fp" in
+	let shader_info = Glsl_shader.create indirect_light_vertex_shader1 indirect_light_fragment_shader1 None None (Some "#define DAMPEN") in
+	Glsl_shader.insert_shader_list "indirect_light1" shader_info;
+	
+	let blur_vertex_shader = "../shader/blur.vp" in
+	let blur_fragment_shader = "../shader/blur.fp" in
+	let shader_info = Glsl_shader.create blur_vertex_shader blur_fragment_shader None None None in
+	Glsl_shader.insert_shader_list "blur" shader_info
+;;
+
 
 let create width height = 
 	(* create indirect light buffer texture *)
@@ -35,146 +54,20 @@ let create width height =
 				depth_tex_list = [||];
 			}
 	in
-	Render_texture.create textures (Some depthbuffer);
+	let indirect_light_rt = Render_texture.create textures (Some depthbuffer) in
 
 	let textures = {
 				tex_list = [| blur_buffer_base.Texture.tex_id |];
 				depth_tex_list = [||];
 		       }
 	in
-	Render_texture.create textures None;
+	let blur_rt = Render_texture.create textures None in
+	create_shader ();
 	{
 		width; height; 
 		light_buffer = indirect_light_buffer_base.Texture.tex_id;
 		depth_buffer = depthbuffer.Depth_buffer.id;
 		blur_buffer = blur_buffer_base.Texture.tex_id;
+		indirect_light_rt; blur_rt;
 	}
-;;
-(*
-let create_indirect_light_shader0 () = 
-	(* indirect light shader *)
-	let vertex_shader = glCreateShader GL_VERTEX_SHADER in
-	let sc = open_in "../shader/indirect_light.vp" in
-	let size = in_channel_length sc in
-	let vertex_shader_src = String.create size in
-	ignore (input sc vertex_shader_src 0 size);
-	Printf.printf "\n\n%s\n\n" vertex_shader_src;
-	glShaderSource vertex_shader vertex_shader_src;
-	close_in sc;
-
-	let fragment_shader = glCreateShader GL_FRAGMENT_SHADER in
-	let sc = open_in "../shader/indirect_light.fp" in
-	let size = in_channel_length sc in
-	let fragment_shader_src = String.create size in
-	ignore (input sc fragment_shader_src 0 size);
-	Printf.printf "\n\n%s\n\n" fragment_shader_src;
-	glShaderSource fragment_shader fragment_shader_src;
-	close_in sc;
-
-	glCompileShader vertex_shader;
-	glGetShaderCompileStatus_exn vertex_shader;
-	glCompileShader fragment_shader;
-	glGetShaderCompileStatus_exn fragment_shader;
-
-	let program = glCreateProgram () in
-	glAttachShader program vertex_shader;
-	glAttachShader program fragment_shader;
-	glLinkProgram program;
-	let attributes = [|{Glsl_shader.name = "normal"; Glsl_shader.value = glGetAttribLocation program "normal"};
-			   {Glsl_shader.name = "position"; Glsl_shader.value = glGetAttribLocation program "position"} |]
-	in
-	let geometry_shader = glCreateShader GL_GEOMETRY_SHADER in
-	let shader_info = {vertex_shader; fragment_shader; geometry_shader; program;attributes} in
-	Glsl_shader.insert_shader_list "indirect_light0" shader_info
-;;
-
-let create_indirect_light_shader1 () = 
-	let vertex_shader = glCreateShader GL_VERTEX_SHADER in
-	let sc = open_in "../shader/indirect_light.vp" in
-	let size = in_channel_length sc in
-	let vertex_shader_src = String.create size in
-	ignore (input sc vertex_shader_src 0 size);
-	Printf.printf "\n\n%s\n\n" vertex_shader_src;
-	let sources = [|"#define DAMPEN"; vertex_shader_src|] in
-	Glex.glShaderSources vertex_shader 2 (Some sources) None;
-	close_in sc;
-
-	let fragment_shader = glCreateShader GL_FRAGMENT_SHADER in
-	let sc = open_in "../shader/indirect_light.fp" in
-	let size = in_channel_length sc in
-	let fragment_shader_src = String.create size in
-	ignore (input sc fragment_shader_src 0 size);
-	Printf.printf "\n\n%s\n\n" fragment_shader_src;
-	let sources = [|"#define DAMPEN"; fragment_shader_src|] in
-	Glex.glShaderSources fragment_shader 2 (Some sources) None;
-	close_in sc;
-
-	glCompileShader vertex_shader;
-	glGetShaderCompileStatus_exn vertex_shader; 
-	glCompileShader fragment_shader;
-	glGetShaderCompileStatus_exn fragment_shader; 
-
-	let program = glCreateProgram () in
-	glAttachShader program vertex_shader;
-	glAttachShader program fragment_shader;
-	glLinkProgram program;
-	let attributes = [|{Glsl_shader.name = "normal"; Glsl_shader.value = glGetAttribLocation program "normal"};
-			   {Glsl_shader.name = "position"; Glsl_shader.value = glGetAttribLocation program "position"}|];
-	in
-	
-	let geometry_shader = glCreateShader GL_GEOMETRY_SHADER in
-	let shader_info = {vertex_shader; fragment_shader; geometry_shader; program;attributes} in
-	Glsl_shader.insert_shader_list "indirect_light1" shader_info
-;;
-
-let create_blur_shader () =
-	(* load blur shader source *)
-	let vertex_shader = glCreateShader GL_VERTEX_SHADER in
-	let sc = open_in "../shader/blur.vp" in
-	let size = in_channel_length sc in
-	let vertex_shader_src = String.create size in
-	ignore (input sc vertex_shader_src 0 size);
-	Printf.printf "\n\n%s\n\n" vertex_shader_src;
-	glShaderSource vertex_shader vertex_shader_src;
-	close_in sc;
-
-	let fragment_shader = glCreateShader GL_FRAGMENT_SHADER in
-	let sc = open_in "../shader/blur.fp" in
-	let size = in_channel_length sc in
-	let fragment_shader_src = String.create size in
-	ignore (input sc fragment_shader_src 0 size);
-	Printf.printf "\n\n%s\n\n" fragment_shader_src;
-	glShaderSource fragment_shader fragment_shader_src;
-	close_in sc;
-
-	glCompileShader vertex_shader;
-	glGetShaderCompileStatus_exn vertex_shader;
-	glCompileShader fragment_shader;
-	glGetShaderCompileStatus_exn fragment_shader;
-
-	let program = glCreateProgram () in
-	glAttachShader program vertex_shader;
-	glAttachShader program fragment_shader;
-	glLinkProgram program;
-	let attributes = [| {Glsl_shader.name = "position"; Glsl_shader.value = glGetAttribLocation program "position"} |] in
-	let geometry_shader = glCreateShader GL_GEOMETRY_SHADER in
-	let shader_info = {vertex_shader; fragment_shader; geometry_shader; program;attributes} in
-	Glsl_shader.insert_shader_list "blur" shader_info;
-;;	
-*)
-let create_shader () =
-	let indirect_light_vertex_shader0 = "../shader/indirect_light.vp" in
-	let indirect_light_fragment_shader0 = "../shader/indirect_light.fp" in
-	let shader_info = Glsl_shader.create indirect_light_vertex_shader0 indirect_light_fragment_shader0 None None None in
-	Glsl_shader.insert_shader_list "indirect_light0" shader_info;
-
-	let indirect_light_vertex_shader1 = "../shader/indirect_light.vp" in
-	let indirect_light_fragment_shader1 = "../shader/indirect_light.fp" in
-	let shader_info = Glsl_shader.create indirect_light_vertex_shader1 indirect_light_fragment_shader1 None None (Some "#define DAMPEN") in
-	Glsl_shader.insert_shader_list "indirect_light1" shader_info;
-	
-	let blur_vertex_shader = "../shader/blur.vp" in
-	let blur_fragment_shader = "../shader/blur.fp" in
-	let shader_info = Glsl_shader.create blur_vertex_shader blur_fragment_shader None None None in
-	Glsl_shader.insert_shader_list "blur" shader_info
 ;;

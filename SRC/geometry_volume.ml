@@ -45,7 +45,7 @@ let create_gv_texture tex_name dim_x dim_y dim_z pixels =
 ;;
 	
 let create cell_size dim_x dim_y dim_z =
-	let bbox = Bounding_box.create () in
+	let bbox = Bounding_box.init in
 	let Vector.Vec3 (x, y, z) = cell_size in
 	let x = x *. (float dim_x) *. 0.5 and y = y *. (float dim_y) *. 0.5 and z = z *. (float dim_z) *. 0.5 in
 	ignore (Bounding_box.add_vertex (x, y, z) bbox);

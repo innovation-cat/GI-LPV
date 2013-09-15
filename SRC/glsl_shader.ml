@@ -70,7 +70,7 @@ let create vertex_shader_file fragment_shader_file geometry_shader_file geometry
 	let size = in_channel_length sc in
 	let vertex_shader_src = String.create size in
 	ignore (input sc vertex_shader_src 0 size);
-	Printf.fprintf out "\n\n%s\n\n" vertex_shader_src;
+(*	Printf.fprintf out "\n\n%s\n\n" vertex_shader_src;*)
 	let vertex_shader = compile_shader vertex_shader_src GL_VERTEX_SHADER prep in 
 	close_in sc;
 
@@ -78,7 +78,7 @@ let create vertex_shader_file fragment_shader_file geometry_shader_file geometry
 	let size = in_channel_length sc in
 	let fragment_shader_src = String.create size in
 	ignore (input sc fragment_shader_src 0 size);
-	Printf.fprintf out "\n\n%s\n\n" fragment_shader_src;
+(*	Printf.fprintf out "\n\n%s\n\n" fragment_shader_src;*)
 	let fragment_shader = compile_shader fragment_shader_src GL_FRAGMENT_SHADER prep in 
 	close_in sc;
 
@@ -90,7 +90,7 @@ let create vertex_shader_file fragment_shader_file geometry_shader_file geometry
 				let size = in_channel_length sc in
 				let geometry_shader_src = String.create size in
 				ignore (input sc geometry_shader_src 0 size);
-				Printf.fprintf out "\n\n%s\n\n" geometry_shader_src;
+(*				Printf.fprintf out "\n\n%s\n\n" geometry_shader_src;*)
 				geometry_shader := Some (compile_shader geometry_shader_src GL_GEOMETRY_SHADER prep);
 				close_in sc;
 	end;
@@ -115,7 +115,7 @@ let create vertex_shader_file fragment_shader_file geometry_shader_file geometry
 	let max_length = glGetProgrami program GL_ACTIVE_ATTRIBUTE_MAX_LENGTH in
 	let attributes = Array.mapi (fun i x -> let name = Glex.glGetActiveAttrib program i max_length in
 						let value = GL.glGetAttribLocation program name in
-						Printf.fprintf out "\n\n%s  %d\n\n" name value;
+	(*					Printf.fprintf out "\n\n%s  %d\n\n" name value;*)
 						{name; value}) (Array.make count 0)
 	in
 	flush out;

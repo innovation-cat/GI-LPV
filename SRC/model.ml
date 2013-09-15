@@ -9,6 +9,8 @@ type t = {
 
 let (|>) x f = f x;;
 
+let material_color = ref (Vector.Vec4 (0.0, 0.0, 0.0, 1.0))
+
 let oc = open_out "out.txt"
 
 let parse ~line =
@@ -191,7 +193,7 @@ let create_shader () =
 let create_model filename =  
 	let sc = open_in_gen [Open_text] 0o777 filename in
 	let (vertices , vert_list) = setup sc in
-	let bbox = Bounding_box.create () in
+	let bbox = Bounding_box.init in
 	let bbox = List.fold_left (fun b a -> let c = Bounding_box.add_vertex (a.(0) , a.(1) , a.(2)) b in c) bbox vert_list in
 	let decl_array = [|{GL_buffer.field = GL_buffer.VEC3F; GL_buffer.binding_name = "position"};
 			   {GL_buffer.field = GL_buffer.VEC3F; GL_buffer.binding_name = "normal"};
@@ -199,7 +201,7 @@ let create_model filename =
 	in
 	let vb_info = GL_buffer.create_vertex_buffer "test_model_vertex_buffer" decl_array (List.length vert_list) VBO.GL_STATIC_DRAW in
 	Printf.printf "%d\n" vb_info.GL_buffer.buffer_size;
-	GL_buffer.insert_buffer_list "slices" vb_info;
+	GL_buffer.insert_buffer_list "test_model_vertex_buffer" vb_info;
 	GL_buffer.bind_vertex_buffer vb_info.GL_buffer.buf;
 	GL_buffer.set_vertex_buffer_data 0 vb_info.GL_buffer.buffer_size vertices;
 	(bbox, vb_info)	
@@ -270,12 +272,12 @@ let draw_to_rsm model sun_light rsm =
 	let grid_space_translation = sun_light.Directional_light.grid_space.Directional_light.translation in
 	let projection = sun_light.Directional_light.grid_space.Directional_light.projection in
 	let grid_space = Vector.mult grid_space_translation grid_space_rotation in
-	
+(*	
 	Vector.print_matrix grid_space_rotation;
 	Vector.print_matrix grid_space_translation;
 	Vector.print_matrix grid_space;
 	Vector.print_matrix projection;	
-	
+*)	
 	Rsm.bind rsm;
 	GL.glViewport 0 0 rsm.Rsm.width rsm.Rsm.height;
 	GL.glClearColor 0.0 0.0 0.0 0.0;
@@ -299,17 +301,96 @@ let draw_to_rsm model sun_light rsm =
 	GL.glUniform1f loc z;	
 
 	let loc = GL.glGetUniformLocation program "material_color" in
-	if loc = -1 then raise (Failure "load grid_spiace variable failure.");
+	if loc = -1 then raise (Failure "load material_color variable failure.");
 	GL.glUniform4f loc 0.0 0.0 0.0 1.0;	
 
 	draw_model model rsm_shader;
 	
 	
+	let Vector.Vec4 (m_x, m_y, m_z, m_a) = !material_color in
 	let loc = GL.glGetUniformLocation program "material_color" in
-	if loc = -1 then raise (Failure "load grid_spiace variable failure.");
-	GL.glUniform4f loc 0.0 0.0 0.0 1.0;
+	if loc = -1 then raise (Failure "load material_color variable failure.");
+	GL.glUniform4f loc m_x m_y m_z m_a;
 
 	draw_floor model rsm_shader;	
 	Rsm.unbind ();
-
 ;;
+
+
+let draw model view_matrix proj_matrix indirect_light_buffer sun_light rsm indirect_light_on = 
+	let selected_shader = if indirect_light_on = true then 0 else 1 in
+	(* choose one shader between final0 and final1 *)
+	let final_shader = if selected_shader = 0 then 
+				Glsl_shader.Resource_Map.find "final0" (!Glsl_shader.shader_list)
+			   else
+				Glsl_shader.Resource_Map.find "final1" (!Glsl_shader.shader_list)
+	in
+	let program = final_shader.Glsl_shader.program in
+	GL.glUseProgram program;
+	
+	let loc = GL.glGetUniformLocation program "projection_matrix" in
+	if loc = -1 then raise (Failure "load projection_matrix variable failure.");
+	GL.glUniformMatrix4f loc false proj_matrix;
+	
+	let loc = GL.glGetUniformLocation program "view_matrix" in
+	if loc = -1 then raise (Failure "load view_matrix variable failure.");
+	GL.glUniformMatrix4f loc false view_matrix;
+
+	let grid_space_rotation = sun_light.Directional_light.grid_space.Directional_light.rotation in
+	let loc = GL.glGetUniformLocation program "light_space_matrix" in
+	if loc = -1 then raise (Failure "load light_space_matrix variable failure.");
+	GL.glUniformMatrix4f loc false grid_space_rotation;
+
+	let Texture.Texture_2D (indirect_light_base, indirect_light_params) = Texture.Resource_Map.find "indirect_light_buffer" (!Texture.texture_list) in	
+	
+	if indirect_light_on = true then begin
+		let loc = GL.glGetUniformLocation program "indirect_light" in
+		if loc = -1 then raise (Failure "load indirect_light variable failure.");
+		GL.glUniform1i loc 1;
+		
+		GL.glActiveTexture GL.GL_TEXTURE1;
+		GL.glBindTexture indirect_light_base.Texture.target indirect_light_base.Texture.tex_id;
+		 
+	end;
+
+	
+	let loc = GL.glGetUniformLocation program "grid_origin_z" in
+	if loc = -1 then raise (Failure "load grid_origin_z variable failure.");
+	let Vector.Vec3 (x, y, z) = sun_light.Directional_light.grid_bbox.Bounding_box.min in
+	GL.glUniform1f loc z;
+
+	let projection = sun_light.Directional_light.grid_space.Directional_light.projection in
+	let rsm_matrix = Vector.mult projection grid_space_rotation in
+	let loc = GL.glGetUniformLocation program "rsm_matrix" in
+	if loc = -1 then raise (Failure "load rsm_matrix variable failure.");
+	GL.glUniformMatrix4f loc false rsm_matrix;
+
+	let loc = GL.glGetUniformLocation program "rsm_depth" in
+	if loc = -1 then raise (Failure "load rsm_depth variable failure.");
+	GL.glUniform1i loc 2;
+	
+	let Texture.Texture_2D (depth_tex_base, depth_tex_params) = Texture.Resource_Map.find "rsm_depth_tex" (!Texture.texture_list) in
+	GL.glActiveTexture GL.GL_TEXTURE2;
+	GL.glBindTexture depth_tex_base.Texture.target depth_tex_base.Texture.tex_id;
+		
+	let loc = GL.glGetUniformLocation program "material_color" in
+	if loc = -1 then raise (Failure "load indirect_light variable failure.");
+	GL.glUniform4f loc 0.0 0.0 0.0 1.0;
+
+	draw_model model final_shader;
+	
+	let loc = GL.glGetUniformLocation program "material_color" in
+	let Vector.Vec4 (m_x, m_y, m_z, m_a) = !material_color in
+	if loc = -1 then raise (Failure "load indirect_light variable failure.");
+	GL.glUniform4f loc m_x m_y m_z m_a;
+
+	draw_floor model final_shader;
+	
+	FBO.glUnBindFrameBuffer FBO.GL_FRAMEBUFFER;
+	
+	if indirect_light_on = true then begin
+		GL.glActiveTexture GL.GL_TEXTURE1;
+		GL.glUnbindTexture indirect_light_base.Texture.target;
+	end
+
+;;			
