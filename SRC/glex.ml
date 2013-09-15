@@ -109,3 +109,7 @@ type geometry_type =
 external glProgramParameteriEXT : GL.shader_program -> geometry_type -> int -> unit = "ml_glprogramparameteriext"
 
 external glGetActiveAttrib : GL.shader_program -> int -> int -> string = "ml_glgetactiveattrib"
+
+external glEnableVertexAttribArray : int -> unit = "ml_glenablevertexattribarray"
+
+external glDisableVertexAttribArray : int -> unit = "ml_gldisablevertexattribarray"

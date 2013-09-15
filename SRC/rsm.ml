@@ -64,3 +64,6 @@ let create width height =
 	  depthbuffer = depthbuffer.Depth_buffer.id; rt;
 	}
 	
+let bind data = FBO.glBindFrameBuffer FBO.GL_FRAMEBUFFER data.rt
+
+let unbind () = FBO.glUnBindFrameBuffer FBO.GL_FRAMEBUFFER

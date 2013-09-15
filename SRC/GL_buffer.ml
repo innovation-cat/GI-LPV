@@ -9,12 +9,12 @@ type decl = {
 	    }
 
 let calc_decl_attribute = function
-	   VEC3F -> (12, 3, GL.GL_FLOAT)
-	|  VEC2F -> (8, 2, GL.GL_FLOAT)
-	|  FLOAT -> (4, 1, GL.GL_FLOAT)
-	|  VEC4F -> (16, 4, GL.GL_FLOAT)
-	|  MAT4X4 -> (64, 16, GL.GL_FLOAT)
-	|  UNSIGNED_INTEGER -> (4, 1, GL.GL_UNSIGNED_INT)
+	   VEC3F -> (12, 3, VertArray.VAttr.GL_FLOAT)
+	|  VEC2F -> (8, 2, VertArray.VAttr.GL_FLOAT)
+	|  FLOAT -> (4, 1, VertArray.VAttr.GL_FLOAT)
+	|  VEC4F -> (16, 4, VertArray.VAttr.GL_FLOAT)
+	|  MAT4X4 -> (64, 16, VertArray.VAttr.GL_FLOAT)
+	|  UNSIGNED_INTEGER -> (4, 1, VertArray.VAttr.GL_UNSIGNED_INT)
 	|  _ -> raise (Failure "I don't know yet.")
 
 
@@ -25,6 +25,7 @@ type vertex_buffer = {
 			mutable element_size       : int;
 			mutable buffer_size        : int;
 			mutable buffer_decl_array  : decl array;
+		     	mutable vertex_attributes  : int array;
 		     }
 
 module Resource_Map = Map.Make (struct type t = string let compare = String.compare end)
@@ -42,9 +43,35 @@ let create_vertex_buffer name buffer_decl_array length usage =
 	VBO.glBindBuffer VBO.GL_ARRAY_BUFFER buf;
 	VBO.glBufferDataNull VBO.GL_ARRAY_BUFFER buffer_size usage;
 	VBO.glUnbindBuffer VBO.GL_ARRAY_BUFFER;
-	{buf; name; length; element_size; buffer_size; buffer_decl_array;}
+	{buf; name; length; element_size; buffer_size; buffer_decl_array; vertex_attributes = [||]}
+;;
 
-let bind_vertex_buffer buf = VBO.glBindBuffer (VBO.GL_ARRAY_BUFFER) buf
+
+let bind_vertex_buffer buf = VBO.glBindBuffer (VBO.GL_ARRAY_BUFFER) buf;;
+
+
+let bind_vertex_buffer_with_shader vb shader = 
+	VBO.glBindBuffer (VBO.GL_ARRAY_BUFFER) vb.buf;
+	let buffer_decl = vb.buffer_decl_array in
+	let vertex_attributes = Array.make (Array.length shader.Glsl_shader.attributes) 0 in
+	let offset = ref 0 in
+	Array.iteri (fun i {Glsl_shader.name=n;Glsl_shader.value=v} -> vertex_attributes.(i) <- v; 
+			   Glex.glEnableVertexAttribArray v;
+			   let (x, y, z) = calc_decl_attribute (buffer_decl.(i).field) in 
+			   VertArray.glVertexAttribPointerOfs8 v y z true vb.element_size (!offset);
+			   offset := (!offset) + x) shader.Glsl_shader.attributes;
+	vb.vertex_attributes <- vertex_attributes;
+	VBO.glUnbindBuffer (VBO.GL_ARRAY_BUFFER)
+;;
+
+		
+let unbind_vertex_buffer buf = VBO.glUnbindBuffer (VBO.GL_ARRAY_BUFFER);;
+
+
+let unbind_vertex_buffer_with_shader vb shader =
+	Array.iteri (fun i attrib -> Glex.glDisableVertexAttribArray attrib) vb.vertex_attributes
+;;
+
 
 let set_vertex_buffer_data offset size data = VBO.glBufferSubData (VBO.GL_ARRAY_BUFFER) offset size (Bigarray.Array1.of_array Bigarray.float32 Bigarray.c_layout data)
 

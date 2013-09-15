@@ -387,3 +387,15 @@ t_value ml_glgetactiveattrib (value program, value index, value bufsize)
 	name = caml_copy_string (buffer);
 	CAMLreturn (name);
 }
+
+t_value ml_glenablevertexattribarray (value index)
+{
+	glEnableVertexAttribArray(Int_val(index));
+	return (Val_unit);
+}
+
+t_value ml_gldisablevertexattribarray (value index)
+{
+	glDisableVertexAttribArray(Int_val(index));
+	return (Val_unit);
+}

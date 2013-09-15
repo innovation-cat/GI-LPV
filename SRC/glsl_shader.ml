@@ -66,7 +66,7 @@ let compile_shader source shader_type prep =
 (* return value:                                                            *)
 
 let create vertex_shader_file fragment_shader_file geometry_shader_file geometry_params prep = 
-	let sc = open_in vertex_shader_file in
+	let sc = open_in_gen [Open_text] 0o777 vertex_shader_file in
 	let size = in_channel_length sc in
 	let vertex_shader_src = String.create size in
 	ignore (input sc vertex_shader_src 0 size);
@@ -74,7 +74,7 @@ let create vertex_shader_file fragment_shader_file geometry_shader_file geometry
 	let vertex_shader = compile_shader vertex_shader_src GL_VERTEX_SHADER prep in 
 	close_in sc;
 
-	let sc = open_in fragment_shader_file in
+	let sc = open_in_gen [Open_text] 0o777 fragment_shader_file in
 	let size = in_channel_length sc in
 	let fragment_shader_src = String.create size in
 	ignore (input sc fragment_shader_src 0 size);
@@ -86,7 +86,7 @@ let create vertex_shader_file fragment_shader_file geometry_shader_file geometry
  	begin 
 		match geometry_shader_file with
 		    None -> ()
-		|   Some gs ->  let sc = open_in gs in
+		|   Some gs ->  let sc = open_in_gen [Open_text] 0o777 gs in
 				let size = in_channel_length sc in
 				let geometry_shader_src = String.create size in
 				ignore (input sc geometry_shader_src 0 size);
