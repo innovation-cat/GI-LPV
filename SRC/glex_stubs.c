@@ -399,3 +399,9 @@ t_value ml_gldisablevertexattribarray (value index)
 	glDisableVertexAttribArray(Int_val(index));
 	return (Val_unit);
 }
+
+t_value ml_gltexparameterforanisotropy (value target, value num)
+{
+	glTexParameteri(conv_texture_binding_table[Int_val(target)], GL_TEXTURE_MAX_ANISOTROPY_EXT, Int_val(num));
+	return (Val_unit);
+}

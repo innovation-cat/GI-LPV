@@ -58,172 +58,32 @@ let calc_proj_mat () =
 	end
 ;;
 
+(* create wall and flloor texture *)
 let insert_textures () =
 	let base = {Texture.tex_id = glGenTexture (); Texture.target = BindTex.GL_TEXTURE_2D ; Texture.name = "wall"} in
 	let open Texture.Texture_Params_2D in
 	let {width;height;bpp;pixels} = load_image "./brick1.tga" in
-	let params = {init_param_2d with min_filter = GL.Min.GL_LINEAR; 
+	let params = {init_param_2d with min_filter = GL.Min.GL_LINEAR_MIPMAP_LINEAR; 
 					 mag_filter = GL.Mag.GL_LINEAR;
-		    		         source_format = if bpp=4 then GL.GL_RGBA else GL.GL_RGB;
-			        	 internal_format = if bpp=4 then Glex.GL_RGBA else Glex.GL_RGB;
 				         wrap_s = GL_REPEAT;
 				         wrap_t = GL_REPEAT;
-					 degree_of_anisotropy = 1}
+					 degree_of_anisotropy = 16}
 	in
 	Texture.create_texture_2d base params width height (Some pixels);
+
 	let {width;height;bpp;pixels} = load_image "./stone08.tga" in
 	let params = {params with source_format = if bpp=4 then GL.GL_RGBA else GL.GL_RGB;
 				  internal_format = if bpp=4 then Glex.GL_RGBA else Glex.GL_RGB;}
 	in 
 	let base = {base with Texture.tex_id = glGenTexture (); Texture.name = "floor"} in
 	Texture.create_texture_2d base params width height (Some pixels)
-
-(*	Resource_Map.add "wall" (base,params) 
-	glBindTexture ~target:BindTex.GL_TEXTURE_2D ~texture:tex_id;
-	glTexImage2D ~target:TexTarget.GL_TEXTURE_2D ~level:0 ~internal_format:InternalFormat.GL_RGB ~width ~height ~format_:GL_RGB ~type_:GL_UNSIGNED_BYTE ~pixels;
-	glTexParameter ~target:TexParam.GL_TEXTURE_2D ~param:(TexParam.GL_TEXTURE_MAG_FILTER Mag.GL_LINEAR);
-	glTexParameter ~target:TexParam.GL_TEXTURE_2D ~param:(TexParam.GL_TEXTURE_MIN_FILTER Min.GL_LINEAR);*)
 ;;	
-(*
-let create_model () =
-	let sc = open_in "../image/data.txt" in
-	let vertexes = Model.setup sc in
-	let bbox = Bounding_box.create () in
-	let bbox = Array.fold_left (fun b {pos={x;y;z}; _ } -> Bounding_box.add_vertex (x,y,z) b) bbox vertexes in
-	let buffer = { 	Model.vbo = glGenBuffer (); 
-			Model.name = "test_model_vertex_buffer"; 
-			Model.length = Array.length vertexes; 
-			Model.element_size = 32; 
-			Model.buffer_decl= [|{f_type=VEC3F; f_name="position"};{f_type=VEC3F; f_name="normal"}; {f_type=VEC2F; f_name="texcoord"}|];
-		     	bbox
-		     }
-	in
-	let buffer_size = buffer.Model.length * buffer.Model.element_size in
-	let vertexes_array = Array.make buffer_size 0.0 in
-	let index = ref 0 in
-	Array.iter (fun {pos={x;y;z};nor={m;n;k};tc={s;t}} -> vertexes_array.(!index) <- x; vertexes_array.(!index+1) <- y;
-							      vertexes_array.(!index+2) <- z; vertexes_array.(!index+3) <- m;
-							      vertexes_array.(!index+4) <- n; vertexes_array.(!index+5) <- k;
-							      vertexes_array.(!index+6) <- s; vertexes_array.(!index+7) <- t;
-							      index := !index + 8) vertexes;
-	let vertexes_bigarray = Bigarray.Array1.of_array Bigarray.float32 Bigarray.c_layout vertexes_array in
-	glBindBuffer GL_ARRAY_BUFFER buffer.vbo;
-	glBufferData GL_ARRAY_BUFFER (ba_sizeof vertexes_bigarray) vertexes_bigarray GL_STATIC_DRAW;
-	insert_vertex_buffer buffer;
-	close_in sc
-;;
 
-let create_rsm_shader () = 
-	let vertex_shader = glCreateShader GL_VERTEX_SHADER in
-	let sc = open_in "../shader/rsm.vp" in
-	let size = in_channel_length sc in
-	let vertex_shader_src = String.create size in
-	ignore (input sc vertex_shader_src 0 size);
-	glShaderSource vertex_shader vertex_shader_src;
-	close_in sc;
 
-	let fragment_shader = glCreateShader GL_FRAGMENT_SHADER in
-	let sc = open_in "../shader/rsm.fp" in
-	let size = in_channel_length sc in
-	let fragment_shader_src = String.create size in
-	ignore (input sc fragment_shader_src 0 size);
-	glShaderSource fragment_shader fragment_shader_src;
-	close_in sc;
-
-	glCompileShader vertex_shader;
-	glGetShaderCompileStatus_exn vertex_shader;
-	glCompileShader fragment_shader;
-	glGetShaderCompileStatus_exn fragment_shader;
-
-	let program = glCreateProgram () in
-	glAttachShader program vertex_shader;
-	glAttachShader program fragment_shader;
-	glLinkProgram program;
-	let attributes = [|{Glsl_shader.name = "normal"; Glsl_shader.value = glGetAttribLocation program "normal"};
-			   {Glsl_shader.name = "position"; Glsl_shader.value = glGetAttribLocation program "position"};
-			   {Glsl_shader.name = "texcoord"; Glsl_shader.value = glGetAttribLocation program "texcoord"} |] 
-	in
-	let geometry_shader = glCreateShader GL_GEOMETRY_SHADER in
-	let shader_info = {vertex_shader; fragment_shader; geometry_shader; program;attributes} in
-	insert_shader_list "rsm" shader_info
-;;
-
-let create_final0_shader () = 
-	let vertex_shader = glCreateShader GL_VERTEX_SHADER in
-	let sc = open_in "../shader/final.vp" in
-	let size = in_channel_length sc in
-	let vertex_shader_src = String.create size in
-	ignore (input sc vertex_shader_src 0 size);
-	glShaderSource vertex_shader vertex_shader_src;
-	close_in sc;
-
-	let fragment_shader = glCreateShader GL_FRAGMENT_SHADER in
-	let sc = open_in "../shader/final.fp" in
-	let size = in_channel_length sc in
-	let fragment_shader_src = String.create size in
-	ignore (input sc fragment_shader_src 0 size);
-	glShaderSource fragment_shader fragment_shader_src;
-	close_in sc;
-
-	glCompileShader vertex_shader;
-	glGetShaderCompileStatus_exn vertex_shader;
-	glCompileShader fragment_shader;
-	glGetShaderCompileStatus_exn fragment_shader;
-
-	let program = glCreateProgram () in
-	glAttachShader program vertex_shader;
-	glAttachShader program fragment_shader;
-	glLinkProgram program;
-	let attributes = [|{Glsl_shader.name = "normal"; Glsl_shader.value = glGetAttribLocation program "normal"};
-			   {Glsl_shader.name = "position"; Glsl_shader.value = glGetAttribLocation program "position"};
-			   {Glsl_shader.name = "texcoord"; Glsl_shader.value = glGetAttribLocation program "texcoord"} |] 
-	in
-	let geometry_shader = glCreateShader GL_GEOMETRY_SHADER in
-	let shader_info = {vertex_shader; fragment_shader; geometry_shader; program;attributes} in
-	insert_shader_list "final0" shader_info
-;;
-
-let create_final1_shader () = 
-	let vertex_shader = glCreateShader GL_VERTEX_SHADER in
-	let sc = open_in "../shader/final.vp" in
-	let size = in_channel_length sc in
-	let vertex_shader_src = String.create size in
-	ignore (input sc vertex_shader_src 0 size);
-	let sources = [|"#define NO_INDIRECT_LIGHT"; vertex_shader_src|] in
-	glShaderSources vertex_shader 2 (Some sources) None;
-	close_in sc;
-
-	let fragment_shader = glCreateShader GL_FRAGMENT_SHADER in
-	let sc = open_in "../shader/final.fp" in
-	let size = in_channel_length sc in
-	let fragment_shader_src = String.create size in
-	ignore (input sc fragment_shader_src 0 size);
-	let sources = [|"#define NO_INDIRECT_LIGHT"; fragment_shader_src|] in
-	glShaderSources fragment_shader 2 (Some sources) None;
-	close_in sc;
-
-	glCompileShader vertex_shader;
-	glGetShaderCompileStatus_exn vertex_shader; 
-	glCompileShader fragment_shader;
-	glGetShaderCompileStatus_exn fragment_shader; 
-
-	let program = glCreateProgram () in
-	glAttachShader program vertex_shader;
-	glAttachShader program fragment_shader;
-	glLinkProgram program;
-	let attributes = [|{Glsl_shader.name = "normal"; Glsl_shader.value = glGetAttribLocation program "normal"};
-			   {Glsl_shader.name = "position"; Glsl_shader.value = glGetAttribLocation program "position"};
-			   {Glsl_shader.name = "texcoord"; Glsl_shader.value = glGetAttribLocation program "texcoord"} |] 
-	in
-	
-	let geometry_shader = glCreateShader GL_GEOMETRY_SHADER in
-	let shader_info = {vertex_shader; fragment_shader; geometry_shader; program;attributes} in
-	insert_shader_list "final1" shader_info
-;;
-*)
+(* create bounding box of grid, this is not the same as bounding box of test_model *)
 let create_grid_bounding_box () =
 	match !test_model with
-		   None -> raise (Failure "no test model.")
+		   None -> raise (Failure "grid bounding_box creation failure, no test model.")
 		|  Some tm -> let v = Bounding_box.calc_dim tm.Model.bbox in
 				Vector.print v;
 				let d = (Vector.length v) *. 0.5 in
@@ -231,13 +91,8 @@ let create_grid_bounding_box () =
 				Bounding_box.add_vertex (d, d, d) !grid_bbox;
 				Bounding_box.add_vertex (-1. *. d, -1. *. d, -1. *. d) !grid_bbox
 ;;
-(*
-let create_testmodel_shader () = 
-	create_rsm_shader ();
-	create_final0_shader ();
-	create_final1_shader ()
-;;
-*)	
+
+
 (* A general OpenGL initialization function.  Sets all of the initial parameters. *)
 let initGL ~width ~height =                     (* We call this right after our OpenGL window is created. *)
 	glClearColor 0.0 0.0 0.0 0.0;                 (* This Will Clear The Background Color To Black *)
@@ -251,17 +106,15 @@ let initGL ~width ~height =                     (* We call this right after our 
 
   	glMatrixMode GL_PROJECTION;
   	glLoadIdentity();                             (* Reset The Projection Matrix *)
-(*
-  	gluPerspective 45.0 ((float width) /. (float height)) 0.1 100.0;  (* Calculate The Aspect Ratio Of The Window *)
-*)
   	glMatrixMode GL_MODELVIEW;
 	glLoadIdentity();
 
 	insert_textures ();
+	
 	test_model := (Some (Model.create "../image/data.txt"));
-	(*create_testmodel_shader ();*)
+
 	create_grid_bounding_box ();
-	Vector.print (!grid_bbox).Bounding_box.min;
+	
 	sun_light := Some (Directional_light.create (Vec3 (0., -1., -1.)) (!grid_bbox));
 	let rsm_width = 512 and rsm_height = 512 in
 	rsm := Some (Rsm.create rsm_width rsm_height);
@@ -280,6 +133,7 @@ let initGL ~width ~height =                     (* We call this right after our 
 	(!shader_list) |> Glsl_shader.Resource_Map.bindings |> List.iter (fun (a,b) -> Printf.printf "%s\n" a);
 	flush stdout
 ;;
+
 (* The function called when our window is resized (which shouldn't happen, because we're fullscreen) *)
 let reSizeGLScene ~width ~height =
 	win_width := width;
@@ -308,25 +162,32 @@ try
 	match (!test_model, !sun_light, !grid, !rsm, !depth_normal_buffer, !indirect_light_buffer) with
 		(None,_,_,_,_,_) | (_,None,_,_,_,_) | (_,_,None,_,_,_) | (_,_,_,None,_,_) | (_,_,_,_,None,_) | (_,_,_,_,_,None) 
 		-> ()
-	     |  (Some test_model, Some sun_light, Some grid, Some rsm, Some depth_normal_buffer, Some indirect_light_buffer) 
-		-> Model.draw_to_rsm test_model sun_light rsm;
+	     |  (Some _test_model, Some _sun_light, Some _grid, Some _rsm, Some _depth_normal_buffer, Some _indirect_light_buffer) 
+		-> Model.draw_to_rsm _test_model _sun_light _rsm;
 		   let view_mat = Camera.get_transform cam (float (!frame_duration)) in
 		   calc_proj_mat ();
 
-		   let Vector.Vec3 (dir_x, dir_y, dir_z) = sun_light.Directional_light.dir in
+		   if !indirect_light_on = true then begin
+			Depth_normal_buffer.set_begin _depth_normal_buffer view_mat !proj_mat _sun_light;
+			Depth_normal_buffer.draw _depth_normal_buffer _test_model;
+			Depth_normal_buffer.set_end _depth_normal_buffer;
+			depth_normal_buffer := Some _depth_normal_buffer;
+		   end;
+
+		   let Vector.Vec3 (dir_x, dir_y, dir_z) = _sun_light.Directional_light.dir in
 		   let sky_color = (-1.) *. dir_y |> max 0.0 |> min 1.0 in
   		   Printf.printf "%f\n" sky_color;
 		   glClearColor 0.0 0.0 sky_color 0.0;
 		   glClear [GL_DEPTH_BUFFER_BIT; GL_COLOR_BUFFER_BIT];   (* Clear The Screen And The Depth Buffer *)
 		   glViewport 0 0 !win_width !win_height;
-		   Model.draw test_model view_mat !proj_mat indirect_light_buffer sun_light rsm (!indirect_light_on);
+		   Model.draw _test_model view_mat !proj_mat _indirect_light_buffer _sun_light _rsm (!indirect_light_on);
 		   glEnable GL.GL_CULL_FACE;
 		   glPolygonMode GL.GL_FRONT_AND_BACK GL.GL_FILL;
 		   glUnuseProgram (); 
 		   glutSwapBuffers ()
 
 with
-	_ -> raise (Failure "draw nodel fail.")
+	Failure str -> Printf.printf "%s\n" str
 
 ;;
 
@@ -347,13 +208,15 @@ let idlefunc () =
 	if !this_frame = 0 then begin
 		prev_frame := Glut.glutGet(Glut.GLUT_ELAPSED_TIME);
 		this_frame := !prev_frame
-		end
+	end
 	else begin
 		prev_frame := !this_frame;
 		this_frame := Glut.glutGet(Glut.GLUT_ELAPSED_TIME)
-		end;
+	end;
 	
 	frame_duration := !this_frame - !prev_frame;
+
+	Printf.printf "frame_duration: %d\n" (!frame_duration);
 	
 	if !rotate_light = true then begin
 		if !light_rotation > pi then begin
@@ -378,7 +241,7 @@ let idlefunc () =
 					Vector.transform rot axis
 		in
 		
-		light_rotation := !light_rotation +. pi *. !rotate_dir *. (float !frame_duration) /. 10000.0;
+		light_rotation := !light_rotation +. pi *. !rotate_dir *. (float !frame_duration) /. 30000.0;
 		Printf.printf "%f\n" !light_rotation;
 		Vector.print light_dir;
 		Vector.print_matrix rot;	

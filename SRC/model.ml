@@ -227,8 +227,10 @@ let draw_model model shader =
 	GL.glUniform1i loc 0;	
 	
 	let vertex_buffer = model.vb_info in
+	(* bind *)
 	GL_buffer.bind_vertex_buffer_with_shader vertex_buffer shader;
 	
+	(* draw *)
 	let Texture.Texture_2D (wall_base, wall_params) = Texture.Resource_Map.find "wall" (!Texture.texture_list) in
 	GL.glActiveTexture GL.GL_TEXTURE0;
 	GL.glBindTexture wall_base.Texture.target wall_base.Texture.tex_id;
@@ -238,11 +240,11 @@ let draw_model model shader =
 	GL.glActiveTexture GL.GL_TEXTURE0;
 	GL.glBindTexture floor_base.Texture.target floor_base.Texture.tex_id;	
 	VertArray.glDrawArrays GL.GL_TRIANGLES 36 72;
-
 	GL.glActiveTexture GL.GL_TEXTURE0;
 	GL.glUnbindTexture floor_base.Texture.target;
 
-	GL_buffer.unbind_vertex_buffer_with_shader vertex_buffer shader
+	(* unbind *)
+	GL_buffer.unbind_vertex_buffer_with_shader vertex_buffer
 
 ;;
 
@@ -253,17 +255,19 @@ let draw_floor model shader =
 	GL.glUniform1i loc 0;	
 	
 	let vertex_buffer = model.vb_info in
+	(* bind *)
 	GL_buffer.bind_vertex_buffer_with_shader vertex_buffer shader;
 	
+	(* draw *)
 	let Texture.Texture_2D (floor_base, floor_params) = Texture.Resource_Map.find "floor" (!Texture.texture_list) in
 	GL.glActiveTexture GL.GL_TEXTURE0;
 	GL.glBindTexture floor_base.Texture.target floor_base.Texture.tex_id;	
 	VertArray.glDrawArrays GL.GL_TRIANGLES 0 36;
-
 	GL.glActiveTexture GL.GL_TEXTURE0;
 	GL.glUnbindTexture floor_base.Texture.target;
 
-	GL_buffer.unbind_vertex_buffer_with_shader vertex_buffer shader
+	(* unbind *)
+	GL_buffer.unbind_vertex_buffer_with_shader vertex_buffer 
 ;;
 
 
@@ -278,7 +282,8 @@ let draw_to_rsm model sun_light rsm =
 	Vector.print_matrix grid_space;
 	Vector.print_matrix projection;	
 *)	
-	Rsm.bind rsm;
+(*	Rsm.bind rsm;*)
+	FBO.glBindFrameBuffer FBO.GL_FRAMEBUFFER rsm.Rsm.rt;
 	GL.glViewport 0 0 rsm.Rsm.width rsm.Rsm.height;
 	GL.glClearColor 0.0 0.0 0.0 0.0;
 	GL.glClear [GL.GL_COLOR_BUFFER_BIT; GL.GL_DEPTH_BUFFER_BIT];

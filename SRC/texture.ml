@@ -75,18 +75,25 @@ let texture_list = ref Resource_Map.empty
 let create_texture_2d base params width height pixels =
 	 (* check fbo support *)
 	glBindTexture base.target base.tex_id;
-(*	glPixelStorei GL_UNPACK_ALIGNMENT 1;*)
+	glPixelStorei GL_UNPACK_ALIGNMENT 1;
 	glTexParameter params.Texture_Params_2D.target (TexParam.GL_TEXTURE_WRAP_S params.Texture_Params_2D.wrap_s);
 	glTexParameter params.Texture_Params_2D.target (TexParam.GL_TEXTURE_WRAP_T params.Texture_Params_2D.wrap_t);
 	glTexParameter params.Texture_Params_2D.target (TexParam.GL_TEXTURE_MAG_FILTER params.Texture_Params_2D.mag_filter);
 	glTexParameter params.Texture_Params_2D.target (TexParam.GL_TEXTURE_MIN_FILTER params.Texture_Params_2D.min_filter);
+
+	if params.Texture_Params_2D.degree_of_anisotropy > 1 then
+		Glex.glTexParameterForAnisotropy base.target params.Texture_Params_2D.degree_of_anisotropy;
 	
 	begin
 	match pixels with
 	    None -> Glex.glTexImage2DNoPixels TexTarget.GL_TEXTURE_2D 0 params.Texture_Params_2D.internal_format width height params.Texture_Params_2D.source_format params.Texture_Params_2D.n_type
 	|   Some p -> Glex.glTexImage2DWithPixels TexTarget.GL_TEXTURE_2D 0 params.Texture_Params_2D.internal_format width height params.Texture_Params_2D.source_format params.Texture_Params_2D.n_type p
 	end;
-	(*glGenerateMipmapEXT base.target;*)
+	let min_filter = params.Texture_Params_2D.min_filter in
+	if min_filter = GL.Min.GL_NEAREST_MIPMAP_NEAREST || min_filter = GL.Min.GL_NEAREST_MIPMAP_LINEAR ||
+	   min_filter = GL.Min.GL_LINEAR_MIPMAP_NEAREST || min_filter = GL.Min.GL_LINEAR_MIPMAP_LINEAR then
+		glGenerateMipmapEXT base.target;
+	
 	glUnbindTexture base.target;
 	texture_list := Resource_Map.add base.name (Texture_2D (base,params)) (!texture_list)
 ;;

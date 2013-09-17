@@ -73,7 +73,7 @@ let bind_vertex_buffer_with_shader vb shader =
 let unbind_vertex_buffer buf = VBO.glUnbindBuffer (VBO.GL_ARRAY_BUFFER);;
 
 
-let unbind_vertex_buffer_with_shader vb shader =
+let unbind_vertex_buffer_with_shader vb =
 	Array.iteri (fun i attrib -> Glex.glDisableVertexAttribArray attrib) vb.vertex_attributes
 ;;
 

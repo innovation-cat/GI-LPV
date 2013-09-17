@@ -113,3 +113,5 @@ external glGetActiveAttrib : GL.shader_program -> int -> int -> string = "ml_glg
 external glEnableVertexAttribArray : int -> unit = "ml_glenablevertexattribarray"
 
 external glDisableVertexAttribArray : int -> unit = "ml_gldisablevertexattribarray"
+
+external glTexParameterForAnisotropy : GL.BindTex.texture_binding -> int -> unit = "ml_gltexparameterforanisotropy"
