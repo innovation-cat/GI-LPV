@@ -1,0 +1,71 @@
+// vertex shader
+
+#extension EXT_gpu_shader4 : require
+
+attribute vec2 position;
+
+uniform float width;
+uniform float height;
+uniform vec4 proj_rsm_to_gv_grid;
+uniform sampler2D depth_tex;
+uniform sampler2D normal_tex; 
+uniform float cell_size_z;
+uniform float point_weight;
+
+varying vec4 blocker;
+
+vec2 instanceID_to_pos(in float instanceID)
+{
+	vec2 pos = vec2(mod(instanceID, width), floor(instanceID / width) );
+	pos /= vec2(width, height);
+	return pos;
+}
+
+vec3 rotate_zh_cone_coeff(in vec3 dir) 
+{ 
+	const float zh_second_band = 1.0233266;
+
+	vec2 theta12_cs = normalize(dir.xz);
+	vec2 phi12_cs = vec2(sqrt(1.0 - dir.y * dir.y), dir.y); 	
+
+	vec3 rotated_coeffs;
+
+	rotated_coeffs.x = zh_second_band * phi12_cs.x * theta12_cs.y; 
+	rotated_coeffs.y = zh_second_band * phi12_cs.y; 
+	rotated_coeffs.z = -zh_second_band * phi12_cs.x * theta12_cs.x;
+	
+	return rotated_coeffs;
+}
+
+vec4 create_blocker(in vec3 normal)
+{
+	// clamped cosine function (see jose.pdf page 5)
+	const float zh_first_band = 0.88622689;
+	const float zh_second_band = 1.0233266;
+
+	return (abs(normal.y) < 0.99) ? vec4(zh_first_band, rotate_zh_cone_coeff(normal) ) : vec4(zh_first_band, 0.0, zh_second_band * sign(normal.y), 0.0);
+}
+
+void main()
+{
+	// sample depth and normal from RSM
+	vec2 sample_pos = instanceID_to_pos(float(gl_InstanceID) ) + position + vec2(0.5 / width, 0.5 / height);
+	float depth = texture2D(depth_tex, sample_pos).r;
+	vec3 normal;
+	normal.xy = texture2D(normal_tex, sample_pos).xy;
+
+	if (vec2(depth) == vec2(0.0, 0.0) )
+	{
+		// discard, no geometry here
+		gl_Position = vec4(-1000.0, -1000.0, 0, 1);
+	}
+	else
+	{
+		// calculate position in geometry volume
+		gl_Position = vec4(proj_rsm_to_gv_grid.xy * sample_pos + proj_rsm_to_gv_grid.zw, (depth + cell_size_z / 2.0) / cell_size_z, 1.0);
+	}
+
+	vec2 n2 = normal.xy * normal.xy;
+	normal.z = sqrt(1.0 - n2.x - n2.y);
+	blocker = create_blocker(normal) * point_weight;
+}

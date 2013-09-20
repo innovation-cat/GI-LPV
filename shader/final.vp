@@ -1,0 +1,52 @@
+// vertex shader
+
+attribute vec4 position; // position in world space
+attribute vec3 normal; // normal in world space
+attribute vec2 texcoord;
+
+uniform mat4 projection_matrix;
+uniform mat4 view_matrix;
+uniform mat4 light_space_matrix;
+uniform mat4 rsm_matrix;
+uniform float grid_origin_z;
+
+varying vec2 tc;
+varying float direct;
+#ifndef NO_INDIRECT_LIGHT
+varying vec3 indirect_light_tc;
+#endif
+varying vec3 rsm_pos;
+
+void main()
+{
+    mat4 mvp_matrix = projection_matrix * view_matrix;
+
+	vec4 clip_pos = mvp_matrix * position;
+
+ 	gl_Position = clip_pos;
+
+#ifndef NO_INDIRECT_LIGHT
+	// coorinates to sample indirect light texture
+	indirect_light_tc.xy = 0.5 * (clip_pos.xy + clip_pos.ww);
+	indirect_light_tc.z = clip_pos.w;
+#endif
+
+	// calculate direct light
+
+	// in this application the grid and the light direction in grid space are fixed, we rotate the scene in the grid to be lit by that fixed light, its direction is (0, 0, 1)
+	mat3 grid_space = mat3(light_space_matrix);
+ 	vec3 light_space_normal = grid_space * normal;
+	// thus direct light intensity is the angle between the normal in grid space and the fixed light direction in grid space
+
+	direct = clamp(light_space_normal.z * .5f, 0.0, 1.0);
+ 	tc = texcoord;
+
+	// transform to rsm space for shadowing
+ 	rsm_pos.xy = (rsm_matrix * position).xy;
+	rsm_pos.xy = 0.5 * rsm_pos.xy + 0.5;
+
+	float z = (grid_space * vec3(position) ).z;
+	z = z - grid_origin_z;
+
+	rsm_pos.z = z;
+}

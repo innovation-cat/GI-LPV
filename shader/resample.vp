@@ -1,0 +1,11 @@
+// vertex shader
+
+attribute vec4 position;
+
+varying vec2 texcoord;
+
+void main()
+{
+ 	gl_Position = position;
+	texcoord = 0.5 * position.xy + vec2(0.5);
+}

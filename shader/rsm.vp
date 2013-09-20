@@ -1,0 +1,31 @@
+// vertex shader
+
+attribute vec4 position; // position in world space
+attribute vec3 normal; // normal in world space
+attribute vec2 texcoord;
+
+varying vec2 grid_space_normal;
+varying vec2 tc;
+varying float depth; 
+
+uniform mat4 projection_matrix;
+uniform mat4 grid_space;
+uniform float grid_origin_z;
+
+void main()
+{
+    mat4 mvp_matrix = projection_matrix * grid_space;
+
+	// transform to RSM
+ 	gl_Position = mvp_matrix * position;
+
+ 	mat3 grid_space3x3 = mat3(grid_space);
+	// transform normal to grid space
+  	grid_space_normal = vec2(grid_space3x3 * normal);
+		
+	tc = texcoord;
+	
+	// transform position to grid space
+	float z = (grid_space3x3 * vec3(position) ).z;
+	depth = z - grid_origin_z;
+}

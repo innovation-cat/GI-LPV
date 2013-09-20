@@ -1,0 +1,51 @@
+// vertex shader
+
+#extension EXT_gpu_shader4 : require
+
+attribute vec2 position;
+
+uniform sampler2D depth_tex;
+uniform sampler2D normal_tex;
+
+uniform float width;
+uniform float height;
+uniform vec2 grid_size;
+uniform vec3 light_dir;
+uniform vec3 cell_size;
+
+varying vec2 texcoord;
+varying	vec3 norm;
+
+vec2 instanceID_to_pos(in float instanceID)
+{
+	vec2 pos = vec2(mod(instanceID, width), floor(instanceID / width) );
+	pos /= vec2(width, height);
+	return pos;
+}
+
+void main()
+{
+	// calc position to sample RSM textures
+	vec2 pos = instanceID_to_pos(float(gl_InstanceID) ) + position + vec2(0.5 / width, 0.5 / height);
+	float depth = texture2D(depth_tex, pos).r;
+
+	// calculate position in the grid
+	vec3 grid_space_pos = vec3(pos * grid_size, depth);
+	
+	// normal in grid space
+	norm.xy = vec2(texture2D(normal_tex, pos) );
+	vec2 n2 = norm.xy * norm.xy;
+	norm.z = sqrt(1.0 - n2.x - n2.y);
+	
+	// move a bit away from the surface
+	grid_space_pos = grid_space_pos + (norm + (-light_dir) ) * 0.25 * cell_size;
+
+	grid_space_pos.xy /= grid_size; // create texture coords (0.0 - 1.0)
+	
+	grid_space_pos.xy = grid_space_pos.xy * 2.0 - 1.0; // create clip space coords (-1.0 - 1.0)
+	grid_space_pos.z = grid_space_pos.z / cell_size.z; // layer (0, 1 ... n)
+
+	texcoord = pos;
+
+	gl_Position.xyz = grid_space_pos;
+}

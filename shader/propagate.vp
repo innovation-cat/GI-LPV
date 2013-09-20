@@ -1,0 +1,20 @@
+// vertex shader
+
+#extension GL_EXT_gpu_shader4 : enable
+
+attribute vec4 position;
+
+uniform float grid_depth;
+uniform float half_texel_size;
+
+varying vec3 grid_tex_coord;
+
+void main()
+{
+ 	gl_Position = position;
+ 	gl_Position.z = float(gl_InstanceID); // index of layer of 3D texture
+
+	grid_tex_coord = vec3(gl_Position);
+	grid_tex_coord.z /= grid_depth;
+	grid_tex_coord.z += half_texel_size;
+}

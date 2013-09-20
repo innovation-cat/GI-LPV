@@ -1,0 +1,28 @@
+// vertex shader
+
+attribute vec4 position; // position in world space
+attribute vec3 normal; // normal in world space
+
+uniform mat4 projection_matrix;
+uniform mat4 view_matrix;
+uniform mat4 grid_space_matrix;
+uniform vec3 inv_grid_size;
+uniform vec3 grid_origin;
+
+varying vec3 light_space_normal;
+varying vec3 grid_coords;
+
+void main()
+{
+    mat4 mvp_matrix = projection_matrix * view_matrix;
+
+ 	gl_Position = mvp_matrix * position;
+
+	// transform normal from world space to grid space
+ 	light_space_normal = mat3(grid_space_matrix) * normal;
+
+	vec3 grid_pos = mat3(grid_space_matrix) * vec3(position);
+
+	grid_coords = grid_pos - grid_origin;
+	grid_coords *= inv_grid_size;
+}

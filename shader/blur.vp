@@ -1,0 +1,13 @@
+// vertex shader
+
+attribute vec4 position;
+
+varying vec2 clip_pos;
+varying vec2 tex_coord;
+
+void main()
+{
+	gl_Position = position;
+	clip_pos = position.xy;
+	tex_coord = (clip_pos * 0.5) + vec2(0.5);
+}

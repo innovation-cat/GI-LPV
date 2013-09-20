@@ -1,0 +1,24 @@
+// vertex shader
+
+attribute vec4 position; // position in world space
+attribute vec3 normal; // normal in world space
+
+varying vec3 view_space_normal;
+varying float view_space_depth; 
+
+uniform mat4 projection_matrix;
+uniform mat4 view_matrix;
+uniform vec2 near_far_plane;
+
+void main()
+{
+	mat4 mv_matrix = view_matrix;
+
+    mat4 mvp_matrix = projection_matrix * mv_matrix;
+    
+ 	gl_Position = mvp_matrix * position;
+ 	 	
+  	view_space_normal = mat3(mv_matrix) * normal;
+
+	view_space_depth = ( (-(mv_matrix * position).z) - near_far_plane.x) / near_far_plane.y;
+}
