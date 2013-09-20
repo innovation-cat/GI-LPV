@@ -9,10 +9,10 @@ open Glsl_shader
 type t = {
 		mutable width                 : int;
 		mutable height                : int;
-		mutable rt           	      : FBO.fbo_id;
+		mutable rt           	      : Render_texture.t;
 		mutable depth_normal 	      : GL.texture_id option;
 		mutable depth_buffer 	      : FBO.rbo_id option;
-		mutable blocker_rt   	      : FBO.fbo_id;
+		mutable blocker_rt   	      : Render_texture.t;
 		mutable blocker_depth_normal  : GL.texture_id option;
 		mutable blocker_buffer_width  : int;
 		mutable blocker_buffer_height : int;
@@ -82,7 +82,10 @@ let create width height near_plane far_plane blocker_buffer_width =
 ;;
 
 let set_begin d_n_b view_matrix proj_matrix sun_light = 
-	FBO.glBindFrameBuffer FBO.GL_FRAMEBUFFER d_n_b.rt;
+	(* bind frame buffer object *)
+	FBO.glBindFrameBuffer FBO.GL_FRAMEBUFFER d_n_b.rt.Render_texture.id;
+	
+	(* load shader program *)
 	let shader = Glsl_shader.Resource_Map.find "depth_normal" (!Glsl_shader.shader_list) in
 	let program = shader.Glsl_shader.program in
 	GL.glUseProgram program;
@@ -97,11 +100,20 @@ let set_begin d_n_b view_matrix proj_matrix sun_light =
 
 	let loc = GL.glGetUniformLocation program "near_far_plane" in
 	if loc = -1 then raise (Failure "load projection_matrix variable failure.");
-	let Vector.Vec2 (x, y) = d_n_b.near_far_plane in
+	let (x, y) = match d_n_b.near_far_plane with 
+		   Vector.Vec2 (a, b) -> (a, b)
+		|  _ -> raise (Failure "near_far_plane is a 2-dimension vector.")
+	in
 	GL.glUniform2f loc x y;
 	
-	let Vector.Vec3 (x, _, _) = Vector.get_x_axis proj_matrix in
-	let Vector.Vec3 (_, y, _) = Vector.get_y_axis proj_matrix in
+	let (x, _, _) = match Vector.get_x_axis proj_matrix with 
+		   Vector.Vec3 (a, b, c) -> (a, b, c)
+		|  _ -> raise (Failure "unexpected error.")
+	in
+	let (_, y, _) = match Vector.get_y_axis proj_matrix with 
+		   Vector.Vec3 (a, b, c) -> (a, b, c)
+		|  _ -> raise (Failure "unexpected error.")
+	in
 	d_n_b.inv_proj <- Vector.Vec2 (1.0/.x, 1.0/.y);
 	
 	let to_world = Vector.inverse view_matrix in
@@ -129,12 +141,15 @@ let set_end d_n_b =
 	GL.glDepthMask false;
 	GL.glDisable GL.GL_DEPTH_TEST;
 	
-	FBO.glBindFrameBuffer FBO.GL_FRAMEBUFFER d_n_b.blocker_rt;
+	FBO.glBindFrameBuffer FBO.GL_FRAMEBUFFER d_n_b.blocker_rt.Render_texture.id;
 	let shader = Glsl_shader.Resource_Map.find "resample" (!Glsl_shader.shader_list) in
 	let program = shader.Glsl_shader.program in
 	GL.glUseProgram program;
 	
-	let Texture.Texture_2D (depth_normal_base, depth_normal_params) = Texture.Resource_Map.find "depth_normal" (!Texture.texture_list) in
+	let (depth_normal_base, depth_normal_params) = match Texture.Resource_Map.find "depth_normal" (!Texture.texture_list) with 
+		   Texture.Texture_2D (base, params) -> (base, params)
+		|  _ -> raise (Failure "depth_normal is a 2-dimension texture.")
+	in
 	let loc = GL.glGetUniformLocation program "texture" in
 	if loc = -1 then raise (Failure "load projection_matrix variable failure.");
 	GL.glUniform1i loc 0;
@@ -147,7 +162,7 @@ let set_end d_n_b =
 	let vb_info = GL_buffer.create_vertex_buffer "fullscreenquad" decl_array 6 VBO.GL_STATIC_DRAW in
 	Printf.printf "%d\n" vb_info.GL_buffer.buffer_size;
 	GL_buffer.insert_buffer_list "fullscreenquad" vb_info;
-	GL_buffer.bind_vertex_buffer vb_info.GL_buffer.buf;
+	GL_buffer.bind_vertex_buffer vb_info;
 	GL_buffer.set_vertex_buffer_data 0 vb_info.GL_buffer.buffer_size vertices;
 	GL_buffer.unbind_vertex_buffer_with_shader vb_info;
 
@@ -155,7 +170,7 @@ let set_end d_n_b =
 	GL_buffer.bind_vertex_buffer_with_shader vb_info shader;
 	
 	(* draw *)
-	VertArray.glDrawArrays GL.GL_TRIANGLES 0 36;
+	VertArray.glDrawArrays GL.GL_TRIANGLES 0 6;
 
 	(* unbind *)
 	GL_buffer.unbind_vertex_buffer_with_shader vb_info;

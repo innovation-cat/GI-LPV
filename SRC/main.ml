@@ -85,7 +85,6 @@ let create_grid_bounding_box () =
 	match !test_model with
 		   None -> raise (Failure "grid bounding_box creation failure, no test model.")
 		|  Some tm -> let v = Bounding_box.calc_dim tm.Model.bbox in
-				Vector.print v;
 				let d = (Vector.length v) *. 0.5 in
 				grid_bbox := tm.Model.bbox;
 				Bounding_box.add_vertex (d, d, d) !grid_bbox;
@@ -128,8 +127,7 @@ let initGL ~width ~height =                     (* We call this right after our 
 			| Some sl -> grid := Some (Grid.create (!grid_bbox) 16 16 16 rsm_width rsm_height sl)
 	end;
 
-	Printf.printf "all end\n";
-	(!texture_list) |> Texture.Resource_Map.bindings |> List.iter (fun (a,b) -> Printf.printf "%s\n" a);
+	(!texture_list) |> Texture.Resource_Map.bindings |> List.iter (fun (a,b) -> Printf.printf "%s\n" a; Texture.print_texture_info b);
 	(!shader_list) |> Glsl_shader.Resource_Map.bindings |> List.iter (fun (a,b) -> Printf.printf "%s\n" a);
 	flush stdout
 ;;
@@ -171,18 +169,42 @@ try
 			Depth_normal_buffer.set_begin _depth_normal_buffer view_mat !proj_mat _sun_light;
 			Depth_normal_buffer.draw _depth_normal_buffer _test_model;
 			Depth_normal_buffer.set_end _depth_normal_buffer;
-			depth_normal_buffer := Some _depth_normal_buffer;
+			
+			Grid.inject_from_depth_normal_buffer _grid _depth_normal_buffer;
+			Grid.inject_from_rsm _grid _rsm;
+			Grid.select_grid _grid;
+			
+			let gv_texture = Texture.Resource_Map.find "gv_texture2" (!Texture.texture_list) in
+			Grid.inject_vpls _grid _rsm gv_texture;
+		
+			Indirect_light_buffer.set_begin _indirect_light_buffer view_mat !proj_mat _sun_light (Vector.Vec3 (16.0, 16.0, 16.0));
+			Grid.bind_light_volume_textures _grid;
+			Indirect_light_buffer.draw _indirect_light_buffer _test_model;
+
+			Grid.unbind_light_volume_textures _grid;
+			Indirect_light_buffer.set_end _indirect_light_buffer;
+			
+			Indirect_light_buffer.blur _indirect_light_buffer _depth_normal_buffer (Vector.Vec3 (16.0, 16.0, 16.0)) _sun_light;
+				
 		   end;
 
 		   let Vector.Vec3 (dir_x, dir_y, dir_z) = _sun_light.Directional_light.dir in
 		   let sky_color = (-1.) *. dir_y |> max 0.0 |> min 1.0 in
-  		   Printf.printf "%f\n" sky_color;
 		   glClearColor 0.0 0.0 sky_color 0.0;
 		   glClear [GL_DEPTH_BUFFER_BIT; GL_COLOR_BUFFER_BIT];   (* Clear The Screen And The Depth Buffer *)
 		   glViewport 0 0 !win_width !win_height;
 		   Model.draw _test_model view_mat !proj_mat _indirect_light_buffer _sun_light _rsm (!indirect_light_on);
 		   glEnable GL.GL_CULL_FACE;
 		   glPolygonMode GL.GL_FRONT_AND_BACK GL.GL_FILL;
+		   
+		   (* update *)
+		   test_model := Some _test_model; 
+		   sun_light := Some _sun_light; 
+		   grid := Some _grid;
+		   rsm := Some _rsm; 
+		   depth_normal_buffer := Some _depth_normal_buffer; 
+		   indirect_light_buffer := Some _indirect_light_buffer;
+		   
 		   glUnuseProgram (); 
 		   glutSwapBuffers ()
 
@@ -242,9 +264,6 @@ let idlefunc () =
 		in
 		
 		light_rotation := !light_rotation +. pi *. !rotate_dir *. (float !frame_duration) /. 30000.0;
-		Printf.printf "%f\n" !light_rotation;
-		Vector.print light_dir;
-		Vector.print_matrix rot;	
 		begin 
 			match !sun_light with
 				  None -> ()

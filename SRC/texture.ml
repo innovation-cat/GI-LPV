@@ -71,6 +71,20 @@ type texture = Texture_2D of texture_base*Texture_Params_2D.texture_params_2d | 
 
 let texture_list = ref Resource_Map.empty
 
+let print_texture_info = function
+	   Texture_2D (base, _) | Texture_3D (base, _) -> 
+			Printf.printf "base: tex_id: %d\n" (base.tex_id :> int);
+			Printf.printf "      target: %s\n"  (match base.target with BindTex.GL_TEXTURE_2D -> "GL_TEXTURE_2D"
+										|   BindTex.GL_TEXTURE_3D -> "GL_TEXTURE_3D"
+										|   BindTex.GL_TEXTURE_1D -> "GL_TEXTURE_1D"
+										|   BindTex.GL_TEXTURE_CUBE_MAP -> "GL_TEXTURE_CUBE_MAP");
+			Printf.printf "      name:  %s\n"  (base.name)
+;;
+
+let update_texture_2d base params = texture_list := Resource_Map.add base.name (Texture_2D (base,params)) (!texture_list);;
+
+let update_texture_3d base params = texture_list := Resource_Map.add base.name (Texture_3D (base,params)) (!texture_list);;
+
 (* create new 2d texture, and insert into texture_list *)
 let create_texture_2d base params width height pixels =
 	 (* check fbo support *)

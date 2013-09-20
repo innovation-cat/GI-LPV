@@ -184,7 +184,7 @@ let create_shader () =
 
 	let final1_vertex_shader = "../shader/final.vp" in
 	let final1_fragment_shader = "../shader/final.fp" in
-	let shader_info = Glsl_shader.create final1_vertex_shader final1_fragment_shader None None (Some "#define NO_INDIRECT_LIGHT") in
+	let shader_info = Glsl_shader.create final1_vertex_shader final1_fragment_shader None None (Some "#define NO_INDIRECT_LIGHT\n") in
 	Glsl_shader.insert_shader_list "final1" shader_info;
 ;;
 
@@ -202,8 +202,9 @@ let create_model filename =
 	let vb_info = GL_buffer.create_vertex_buffer "test_model_vertex_buffer" decl_array (List.length vert_list) VBO.GL_STATIC_DRAW in
 	Printf.printf "%d\n" vb_info.GL_buffer.buffer_size;
 	GL_buffer.insert_buffer_list "test_model_vertex_buffer" vb_info;
-	GL_buffer.bind_vertex_buffer vb_info.GL_buffer.buf;
+	GL_buffer.bind_vertex_buffer vb_info;
 	GL_buffer.set_vertex_buffer_data 0 vb_info.GL_buffer.buffer_size vertices;
+	GL_buffer.unbind_vertex_buffer_with_shader vb_info;
 	(bbox, vb_info)	
 ;;
 
@@ -211,9 +212,15 @@ let create_model filename =
 let create filename = 
 	let (bbox,vb_info) = create_model filename in
 	create_shader ();
-	let Texture.Texture_2D (base, params) = Texture.Resource_Map.find "wall" (!Texture.texture_list) in
+	let (base, params) = match Texture.Resource_Map.find "wall" (!Texture.texture_list) with
+				  Texture.Texture_2D (a, b) -> (a, b)
+			        | _ -> raise (Failure "wall is a 2-dimension texture.") 
+	in
 	let wall_texture = base.Texture.tex_id in
-	let Texture.Texture_2D (base, params) = Texture.Resource_Map.find "floor" (!Texture.texture_list) in
+	let (base, params) = match Texture.Resource_Map.find "floor" (!Texture.texture_list) with
+				  Texture.Texture_2D (a, b) -> (a, b)
+			        | _ -> raise (Failure "floor is a 2-dimension texture.") 
+	in
 	let floor_texture = base.Texture.tex_id in
 	{bbox; vb_info; wall_texture; floor_texture}
 ;;
@@ -231,12 +238,18 @@ let draw_model model shader =
 	GL_buffer.bind_vertex_buffer_with_shader vertex_buffer shader;
 	
 	(* draw *)
-	let Texture.Texture_2D (wall_base, wall_params) = Texture.Resource_Map.find "wall" (!Texture.texture_list) in
+	let (wall_base, wall_params) = match Texture.Resource_Map.find "wall" (!Texture.texture_list) with
+				 	 Texture.Texture_2D (a, b) -> (a, b)
+			               | _ -> raise (Failure "wall is a 2-dimension texture.") 
+	in
 	GL.glActiveTexture GL.GL_TEXTURE0;
 	GL.glBindTexture wall_base.Texture.target wall_base.Texture.tex_id;
 	VertArray.glDrawArrays GL.GL_TRIANGLES 72 (vertex_buffer.GL_buffer.length);
 		
-	let Texture.Texture_2D (floor_base, floor_params) = Texture.Resource_Map.find "floor" (!Texture.texture_list) in
+	let (floor_base, floor_params) = match Texture.Resource_Map.find "floor" (!Texture.texture_list) with
+				  Texture.Texture_2D (a, b) -> (a, b)
+			        | _ -> raise (Failure "floor is a 2-dimension texture.") 
+	in
 	GL.glActiveTexture GL.GL_TEXTURE0;
 	GL.glBindTexture floor_base.Texture.target floor_base.Texture.tex_id;	
 	VertArray.glDrawArrays GL.GL_TRIANGLES 36 72;
@@ -259,7 +272,10 @@ let draw_floor model shader =
 	GL_buffer.bind_vertex_buffer_with_shader vertex_buffer shader;
 	
 	(* draw *)
-	let Texture.Texture_2D (floor_base, floor_params) = Texture.Resource_Map.find "floor" (!Texture.texture_list) in
+	let (floor_base, floor_params) = match Texture.Resource_Map.find "floor" (!Texture.texture_list) with
+				  Texture.Texture_2D (a, b) -> (a, b)
+			        | _ -> raise (Failure "floor is a 2-dimension texture.") 
+	in
 	GL.glActiveTexture GL.GL_TEXTURE0;
 	GL.glBindTexture floor_base.Texture.target floor_base.Texture.tex_id;	
 	VertArray.glDrawArrays GL.GL_TRIANGLES 0 36;
@@ -283,7 +299,7 @@ let draw_to_rsm model sun_light rsm =
 	Vector.print_matrix projection;	
 *)	
 (*	Rsm.bind rsm;*)
-	FBO.glBindFrameBuffer FBO.GL_FRAMEBUFFER rsm.Rsm.rt;
+	FBO.glBindFrameBuffer FBO.GL_FRAMEBUFFER rsm.Rsm.rt.Render_texture.id;
 	GL.glViewport 0 0 rsm.Rsm.width rsm.Rsm.height;
 	GL.glClearColor 0.0 0.0 0.0 0.0;
 	GL.glClear [GL.GL_COLOR_BUFFER_BIT; GL.GL_DEPTH_BUFFER_BIT];
@@ -302,7 +318,10 @@ let draw_to_rsm model sun_light rsm =
 
 	let loc = GL.glGetUniformLocation program "grid_origin_z" in
 	if loc = -1 then raise (Failure "load grid_origin_z variable failure.");
-	let Vector.Vec3 (x,y,z) = sun_light.Directional_light.grid_bbox.Bounding_box.min in
+	let (x,y,z) = match sun_light.Directional_light.grid_bbox.Bounding_box.min with
+				   Vector.Vec3 (a, b, c) -> (a, b, c)
+				|  _ -> raise (Failure "unexpected error. should be 3-dimension vector.")	
+	in
 	GL.glUniform1f loc z;	
 
 	let loc = GL.glGetUniformLocation program "material_color" in
@@ -312,7 +331,10 @@ let draw_to_rsm model sun_light rsm =
 	draw_model model rsm_shader;
 	
 	
-	let Vector.Vec4 (m_x, m_y, m_z, m_a) = !material_color in
+	let (m_x, m_y, m_z, m_a) = match !material_color with 
+				   Vector.Vec4 (a, b, c, d) -> (a, b, c, d)
+				|  _ -> raise (Failure "materia color should be 4-dimension vector.")	
+	in
 	let loc = GL.glGetUniformLocation program "material_color" in
 	if loc = -1 then raise (Failure "load material_color variable failure.");
 	GL.glUniform4f loc m_x m_y m_z m_a;
@@ -346,8 +368,12 @@ let draw model view_matrix proj_matrix indirect_light_buffer sun_light rsm indir
 	if loc = -1 then raise (Failure "load light_space_matrix variable failure.");
 	GL.glUniformMatrix4f loc false grid_space_rotation;
 
-	let Texture.Texture_2D (indirect_light_base, indirect_light_params) = Texture.Resource_Map.find "indirect_light_buffer" (!Texture.texture_list) in	
+	let (indirect_light_base, indirect_light_params) = 
+		match Texture.Resource_Map.find "indirect_light_buffer" (!Texture.texture_list) with
+			   Texture.Texture_2D (base, params) -> (base, params)
+			|  _ -> raise (Failure "indirect_light_buffer is 2-dimension texture.")
 	
+	in	
 	if indirect_light_on = true then begin
 		let loc = GL.glGetUniformLocation program "indirect_light" in
 		if loc = -1 then raise (Failure "load indirect_light variable failure.");
@@ -361,7 +387,10 @@ let draw model view_matrix proj_matrix indirect_light_buffer sun_light rsm indir
 	
 	let loc = GL.glGetUniformLocation program "grid_origin_z" in
 	if loc = -1 then raise (Failure "load grid_origin_z variable failure.");
-	let Vector.Vec3 (x, y, z) = sun_light.Directional_light.grid_bbox.Bounding_box.min in
+	let (x, y, z) = match sun_light.Directional_light.grid_bbox.Bounding_box.min with
+			  Vector.Vec3 (a, b, c) -> (a, b ,c)
+			| _ -> raise (Failure "bounding_box is 3-dimension.")		
+	in
 	GL.glUniform1f loc z;
 
 	let projection = sun_light.Directional_light.grid_space.Directional_light.projection in
@@ -374,7 +403,11 @@ let draw model view_matrix proj_matrix indirect_light_buffer sun_light rsm indir
 	if loc = -1 then raise (Failure "load rsm_depth variable failure.");
 	GL.glUniform1i loc 2;
 	
-	let Texture.Texture_2D (depth_tex_base, depth_tex_params) = Texture.Resource_Map.find "rsm_depth_tex" (!Texture.texture_list) in
+	let (depth_tex_base, depth_tex_params) = 
+		match Texture.Resource_Map.find "rsm_depth_tex" (!Texture.texture_list) with 
+		   	  Texture.Texture_2D (base, params) -> (base, params)
+			|  _ -> raise (Failure "rsm_depth_tex is 2-dimension texture.")			
+	in
 	GL.glActiveTexture GL.GL_TEXTURE2;
 	GL.glBindTexture depth_tex_base.Texture.target depth_tex_base.Texture.tex_id;
 		
@@ -385,7 +418,10 @@ let draw model view_matrix proj_matrix indirect_light_buffer sun_light rsm indir
 	draw_model model final_shader;
 	
 	let loc = GL.glGetUniformLocation program "material_color" in
-	let Vector.Vec4 (m_x, m_y, m_z, m_a) = !material_color in
+	let (m_x, m_y, m_z, m_a) = match !material_color with 
+			   Vector.Vec4 (a, b, c, d) -> (a, b, c, d)
+			|  _ -> raise (Failure "materia color is a 4 dimension vector.")	
+	in
 	if loc = -1 then raise (Failure "load indirect_light variable failure.");
 	GL.glUniform4f loc m_x m_y m_z m_a;
 

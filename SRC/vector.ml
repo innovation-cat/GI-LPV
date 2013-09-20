@@ -69,10 +69,29 @@ let get_y_axis m = Vec3 (m.(1), m.(5), m.(9))
 let get_x_axis m = Vec3 (m.(0), m.(4), m.(8))
 let get_translation m = Vec3 (m.(12), m.(13), m.(14))
 
-let set_z_axis m v = let Vec3 (x,y,z) = v in m.(2) <- x; m.(6) <- y; m.(10) <- z; m
-let set_y_axis m v = let Vec3 (x,y,z) = v in m.(1) <- x; m.(5) <- y; m.(9) <- z; m
-let set_x_axis m v = let Vec3 (x,y,z) = v in m.(0) <- x; m.(4) <- y; m.(8) <- z; m
-let set_translation m v = let Vec3 (x,y,z) = v in m.(12) <- x; m.(13) <- y; m.(14) <- z; m
+let set_z_axis m v = let (x,y,z) = match v with
+			   	      Vec3 (a, b, c) -> (a, b, c)
+				   |  _ -> raise (Failure "only support 3-dimension vector.") 
+		     in 
+		     m.(2) <- x; m.(6) <- y; m.(10) <- z; m
+
+let set_y_axis m v = let (x,y,z) = match v with
+			   	      Vec3 (a, b, c) -> (a, b, c)
+				   |  _ -> raise (Failure "only support 3-dimension vector.") 
+		     in  
+		     m.(1) <- x; m.(5) <- y; m.(9) <- z; m
+
+let set_x_axis m v = let (x,y,z) = match v with
+			   	      Vec3 (a, b, c) -> (a, b, c)
+				   |  _ -> raise (Failure "only support 3-dimension vector.") 
+		     in 
+		     m.(0) <- x; m.(4) <- y; m.(8) <- z; m
+
+let set_translation m v = let (x,y,z) = match v with
+			   	      Vec3 (a, b, c) -> (a, b, c)
+				   |  _ -> raise (Failure "only support 3-dimension vector.") 
+		     	  in 
+			  m.(12) <- x; m.(13) <- y; m.(14) <- z; m
 
 let transform m = function
 	      Vec3 (x,y,z) as v -> Vec3 ( (dot (get_x_axis m) v) +. m.(12),
@@ -140,7 +159,10 @@ let build_rotation_mat_1  pitch yaw roll =
 	   	     cxsy *. cz +. sx *. sz; -1. *. cxsy *. sz +. sx *. cz; cx *. cy; 0.0; 0.0; 0.0; 0.0; 1.0|]
 
 let build_rotation_mat_2 theta r = 
-	let Vec3 (x,y,z) = r in
+	let (x,y,z) = match r with
+			  Vec3 (a, b, c) -> (a, b, c)
+		      |  _ -> raise (Failure "only support 3-dimension vector.") 
+	in 
 	let m = build_identity_matrix () in
 	let costheta = cos theta in
 	let sintheta = sin theta in

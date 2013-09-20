@@ -14,7 +14,7 @@ type t = {
 		mutable color_tex   : GL.texture_id;
 		mutable depth_tex   : GL.texture_id;
 		mutable depthbuffer : FBO.rbo_id;
-		mutable rt          : FBO.fbo_id;		
+		mutable rt          : Render_texture.t;		
 	 }
 
 let create width height = 
@@ -64,6 +64,6 @@ let create width height =
 	  depthbuffer = depthbuffer.Depth_buffer.id; rt;
 	}
 	
-let bind data = FBO.glBindFrameBuffer FBO.GL_FRAMEBUFFER data.rt
+let bind data = FBO.glBindFrameBuffer FBO.GL_FRAMEBUFFER data.rt.Render_texture.id
 
 let unbind () = FBO.glUnBindFrameBuffer FBO.GL_FRAMEBUFFER

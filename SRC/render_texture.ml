@@ -73,6 +73,5 @@ let create textures dp =
 				glFramebufferRenderbuffer FBO.GL_FRAMEBUFFER FBO.GL_DEPTH_ATTACHMENT FBO.GL_RENDERBUFFER p.Depth_buffer.id
 	end;
 	glUnBindFrameBuffer FBO.GL_FRAMEBUFFER;
-	fbo.(0)
-	
-	
+	{id=fbo.(0); rt=textures}
+;;	

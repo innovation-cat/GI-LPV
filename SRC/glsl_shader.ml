@@ -103,10 +103,13 @@ let create vertex_shader_file fragment_shader_file geometry_shader_file geometry
 		match (!geometry_shader) with 
 		    None -> ()
 		|   Some sh ->  glAttachShader program sh;
-				let Some params = geometry_params in
-				Glex.glProgramParameteriEXT program GL_GEOMETRY_INPUT_TYPE_EXT params.input_type;
-				Glex.glProgramParameteriEXT program GL_GEOMETRY_OUTPUT_TYPE_EXT params.output_type;
-				Glex.glProgramParameteriEXT program GL_GEOMETRY_VERTICES_OUT_EXT params.vertices_out
+				begin
+					match geometry_params with
+					   Some params -> Glex.glProgramParameteriEXT program GL_GEOMETRY_INPUT_TYPE_EXT params.input_type;
+							  Glex.glProgramParameteriEXT program GL_GEOMETRY_OUTPUT_TYPE_EXT params.output_type;
+							  Glex.glProgramParameteriEXT program GL_GEOMETRY_VERTICES_OUT_EXT params.vertices_out
+					|  None -> ()
+				end
 	end;
 
 	glLinkProgram program;

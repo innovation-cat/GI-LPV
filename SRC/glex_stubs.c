@@ -405,3 +405,17 @@ t_value ml_gltexparameterforanisotropy (value target, value num)
 	glTexParameteri(conv_texture_binding_table[Int_val(target)], GL_TEXTURE_MAX_ANISOTROPY_EXT, Int_val(num));
 	return (Val_unit);
 }
+
+
+static const GLenum conv_primitive_type_table[] = {GL_POINTS, GL_LINES, GL_LINE_LOOP, 
+						GL_LINE_STRIP, GL_TRIANGLES, GL_TRIANGLE_STRIP, 
+						GL_TRIANGLE_FAN, GL_QUADS, GL_QUAD_STRIP, GL_POLYGON};
+
+t_value ml_gldrawarraysinstanced (value mode, value first, value count, value primcount)
+{
+	glDrawArraysInstanced( conv_primitive_type_table[Int_val(mode)], 
+				Int_val(first),
+				Int_val(count),
+				Int_val(primcount) );
+	return (Val_unit);
+}

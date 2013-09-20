@@ -5,6 +5,7 @@ type space = {
 		mutable rotation    : float array;  (* rotation matrix *)
 		mutable translation : float array;  (* translation matrix *)
 		mutable projection  : float array;  (* projection matrix *)
+		mutable light_dir   : Vector.vec;
 	     }
 
 type light = {
@@ -19,7 +20,9 @@ let init = { dir = Vector.Vec3 (0.0, 0.0, 1.0);
 	     grid_bbox = Bounding_box.init;
 	     grid_space = { rotation = Vector.build_identity_matrix (); 
 			    translation = Vector.build_identity_matrix (); 
-			    projection = Vector.build_identity_matrix ()};
+			    projection = Vector.build_identity_matrix ();
+			    light_dir = Vector.Vec3 (0.0, 0.0, -1.0);
+			  };
 	   }
 
 let update sun_light dir =
@@ -36,10 +39,16 @@ let update sun_light dir =
 
 	let grid_bbox = sun_light.grid_bbox in
 	let translation = build_identity_matrix () in
-	let Vec3 (x,y,z) = grid_bbox.Bounding_box.max in
+	let (x,y,z) = match grid_bbox.Bounding_box.max with 
+				Vec3 (a, b, c) -> (a, b, c)
+			     |  _ -> raise (Failure "only support 3-dimension vector.")	
+	in
 	ignore (set_translation translation (Vec3 (0., 0., -1.0 *. z)));
 	
-	let Vec3 (x,y,z) = calc_dim grid_bbox in
+	let (x,y,z) = match (calc_dim grid_bbox) with 
+			 Vec3 (a, b, c) -> (a, b, c)
+		      |  _ -> raise (Failure "only support 3-dimension vector.")	
+	in
 	let zrange = z and w2 = x /. 2.0 and h2 = y /. 2.0 in
 	let projection = build_ortho_proj (-1. *. w2) w2 h2 (-1. *. h2) 0.0 zrange in
 	sun_light.grid_space.rotation <- rotation;

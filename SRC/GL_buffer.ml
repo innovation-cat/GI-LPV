@@ -47,7 +47,7 @@ let create_vertex_buffer name buffer_decl_array length usage =
 ;;
 
 
-let bind_vertex_buffer buf = VBO.glBindBuffer (VBO.GL_ARRAY_BUFFER) buf;;
+let bind_vertex_buffer vb = VBO.glBindBuffer (VBO.GL_ARRAY_BUFFER) vb.buf;;
 
 
 let bind_vertex_buffer_with_shader vb shader = 
@@ -70,7 +70,7 @@ let bind_vertex_buffer_with_shader vb shader =
 ;;
 
 		
-let unbind_vertex_buffer buf = VBO.glUnbindBuffer (VBO.GL_ARRAY_BUFFER);;
+let unbind_vertex_buffer () = VBO.glUnbindBuffer (VBO.GL_ARRAY_BUFFER);;
 
 
 let unbind_vertex_buffer_with_shader vb =

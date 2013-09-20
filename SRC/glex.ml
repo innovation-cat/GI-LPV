@@ -115,3 +115,5 @@ external glEnableVertexAttribArray : int -> unit = "ml_glenablevertexattribarray
 external glDisableVertexAttribArray : int -> unit = "ml_gldisablevertexattribarray"
 
 external glTexParameterForAnisotropy : GL.BindTex.texture_binding -> int -> unit = "ml_gltexparameterforanisotropy"
+
+external glDrawArraysInstanced : GL.primitive -> int -> int -> int -> unit = "ml_gldrawarraysinstanced" 
