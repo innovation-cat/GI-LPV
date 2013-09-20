@@ -55,16 +55,21 @@ let bind_vertex_buffer_with_shader vb shader =
 	let buffer_decl = vb.buffer_decl_array in
 	let vertex_attributes = Array.make (Array.length shader.Glsl_shader.attributes) 0 in
 	let offset = ref 0 in
-	let rec search na = function [] -> raise (Failure "no attribute.") 
+	Array.iter (fun {Glsl_shader.name=n; Glsl_shader.value=v}-> Printf.printf "%s: %d\n" n v) shader.Glsl_shader.attributes;
+	let rec search na = function [] -> -1 
 				   | {Glsl_shader.name=n; Glsl_shader.value=v}::tl -> if n = na then v
 										  else search na tl
 	in
-	Array.iteri (fun i {field; binding_name} -> let v = search binding_name (Array.to_list shader.Glsl_shader.attributes) in
-			   vertex_attributes.(i) <- v; 
-			   Glex.glEnableVertexAttribArray v;
-			   let (x, y, z) = calc_decl_attribute field in 
-			   VertArray.glVertexAttribPointerOfs8 v y z true vb.element_size (!offset);
-			   offset := (!offset) + x) buffer_decl;
+	Array.iteri (fun i {field; binding_name} -> Printf.printf "%s\n" binding_name;
+			   let v = search binding_name (Array.to_list shader.Glsl_shader.attributes) in
+			   if v <> -1 then begin
+			   	vertex_attributes.(i) <- v; 
+			   	Glex.glEnableVertexAttribArray v;
+			   	let (x, y, z) = calc_decl_attribute field in 
+			   	VertArray.glVertexAttribPointerOfs8 v y z true vb.element_size (!offset);
+			   	offset := (!offset) + x
+			   end;
+   		    ) buffer_decl;
 	vb.vertex_attributes <- vertex_attributes;
 	VBO.glUnbindBuffer (VBO.GL_ARRAY_BUFFER)
 ;;

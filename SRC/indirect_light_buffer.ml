@@ -27,7 +27,7 @@ let create_shader () =
 
 	let indirect_light_vertex_shader1 = "../shader/indirect_light.vp" in
 	let indirect_light_fragment_shader1 = "../shader/indirect_light.fp" in
-	let shader_info = Glsl_shader.create indirect_light_vertex_shader1 indirect_light_fragment_shader1 None None (Some "#define DAMPEN\n") in
+	let shader_info = Glsl_shader.create indirect_light_vertex_shader1 indirect_light_fragment_shader1 None None (Some "#define DAMPEN") in
 	Glsl_shader.insert_shader_list "indirect_light1" shader_info;
 	
 	let blur_vertex_shader = "../shader/blur.vp" in
@@ -124,16 +124,16 @@ let set_begin i_l_b view_mat proj_mat sun_light light_texture_dim =
 	if loc = -1 then raise (Failure "load grid_origin failure.");
 	GL.glUniform3f loc x y z;
 	
-	let loc = GL.glGetUniformLocation program "imcoming_red" in
-	if loc = -1 then raise (Failure "load imcoming_red failure.");
+	let loc = GL.glGetUniformLocation program "incoming_red" in
+	if loc = -1 then raise (Failure "load incoming_red failure.");
 	GL.glUniform1i loc 0;
 
-	let loc = GL.glGetUniformLocation program "imcoming_green" in
-	if loc = -1 then raise (Failure "load imcoming_green failure.");
+	let loc = GL.glGetUniformLocation program "incoming_green" in
+	if loc = -1 then raise (Failure "load incoming_green failure.");
 	GL.glUniform1i loc 1;
 
-	let loc = GL.glGetUniformLocation program "imcoming_blue" in
-	if loc = -1 then raise (Failure "load imcoming_blue failure.");
+	let loc = GL.glGetUniformLocation program "incoming_blue" in
+	if loc = -1 then raise (Failure "load incoming_blue failure.");
 	GL.glUniform1i loc 2;
 ;;
 
@@ -155,8 +155,9 @@ let set_end i_l_b = FBO.glUnBindFrameBuffer FBO.GL_FRAMEBUFFER;;
 
 let blur_aux i_l_b light_texture_dim sun_light proj vertical shader program =
 	let bbox = sun_light.Directional_light.grid_bbox in
-	let Vector.Vec3 (bbox_size_x, bbox_size_y, bbox_size_z) = Bounding_box.calc_dim bbox in
-	let cell_size = bbox_size_x in
+	let Vector.Vec3 (bbox_size_x, bbox_size_y, bbox_size_z) = Bounding_box.calc_dim bbox in	
+	let Vector.Vec3 (light_texture_dim_x, light_texture_dim_y, light_texture_dim_z) = light_texture_dim in
+	let cell_size = bbox_size_x /. light_texture_dim_x in
 	let cell_size_scale = 0.5 in
 	let dist = cell_size *. cell_size_scale *. 0.5 in
 	let dist_threashold = cell_size *. cell_size *. 3.0 in
@@ -234,6 +235,7 @@ let blur i_l_b d_n_b light_texture_dim sun_light =
 	
 	let Vector.Vec2 (x, y) = d_n_b.Depth_normal_buffer.inv_proj in
 	let proj = Vector.Vec2 (1.0/.x, 1.0/.y) in
+	
 	blur_aux i_l_b light_texture_dim sun_light proj true shader program;
 
 	FBO.glUnBindFrameBuffer FBO.GL_FRAMEBUFFER;
@@ -254,6 +256,7 @@ let blur i_l_b d_n_b light_texture_dim sun_light =
 	
 	let Vector.Vec2 (x, y) = d_n_b.Depth_normal_buffer.inv_proj in
 	let proj = Vector.Vec2 (1.0/.x, 1.0/.y) in
+	
 	blur_aux i_l_b light_texture_dim sun_light proj false shader program;
 
 	FBO.glUnBindFrameBuffer FBO.GL_FRAMEBUFFER;

@@ -184,7 +184,7 @@ let create_shader () =
 
 	let final1_vertex_shader = "../shader/final.vp" in
 	let final1_fragment_shader = "../shader/final.fp" in
-	let shader_info = Glsl_shader.create final1_vertex_shader final1_fragment_shader None None (Some "#define NO_INDIRECT_LIGHT\n") in
+	let shader_info = Glsl_shader.create final1_vertex_shader final1_fragment_shader None None (Some "#define NO_INDIRECT_LIGHT") in
 	Glsl_shader.insert_shader_list "final1" shader_info;
 ;;
 

@@ -4,7 +4,7 @@ type t = {
 		mutable dim_z 			: int;
 		mutable cell_size               : Vector.vec;
 		mutable bbox 			: Bounding_box.bounding_box;
-		mutable tex   			: GL.texture_id;
+		mutable tex   			: Texture.texture;
 		mutable fbo   			: Render_texture.t;
 	}
 
@@ -44,7 +44,7 @@ let create_gv_texture tex_name dim_x dim_y dim_z pixels =
 	in
 	let tex_base = {Texture.tex_id = GL.glGenTexture (); Texture.target = GL.BindTex.GL_TEXTURE_3D; Texture.name = tex_name} in
 	Texture.create_texture_3d tex_base tex_params dim_x dim_y dim_z pixels;
-	tex_base.Texture.tex_id 
+	Texture.Texture_3D (tex_base, tex_params)
 ;;
 	
 let create cell_size dim_x dim_y dim_z =
@@ -54,40 +54,40 @@ let create cell_size dim_x dim_y dim_z =
 	ignore (Bounding_box.add_vertex (x, y, z) bbox);
 	ignore (Bounding_box.add_vertex (-1. *. x, -1. *. y, -1. *. z) bbox);
 	create_shader ();
-	let tex = create_gv_texture "gv_texture0" dim_x dim_y dim_z None in
-	let textures = {Render_texture.tex_list = [|tex|]; Render_texture.depth_tex_list = [||]} in
+	let Texture.Texture_3D (base, params) = create_gv_texture "gv_texture0" dim_x dim_y dim_z None in
+	let textures = {Render_texture.tex_list = [|base.Texture.tex_id|]; Render_texture.depth_tex_list = [||]} in
 	let fbo = Render_texture.create textures None in 
-	{dim_x; dim_y; dim_z; cell_size; bbox; tex; fbo;}
+	{dim_x; dim_y; dim_z; cell_size; bbox; tex=Texture.Texture_3D (base, params); fbo;}
 ;;
 
 let copy_gv0 gv = 
-	let tex = create_gv_texture "gv_texture1" gv.dim_x gv.dim_y gv.dim_z None in
-	let textures = {Render_texture.tex_list = [|tex|]; Render_texture.depth_tex_list = [||]} in
+	let Texture.Texture_3D (base, params) = create_gv_texture "gv_texture1" gv.dim_x gv.dim_y gv.dim_z None in
+	let textures = {Render_texture.tex_list = [|base.Texture.tex_id|]; Render_texture.depth_tex_list = [||]} in
 	let fbo = Render_texture.create textures None in 
 	{ dim_x = gv.dim_x; 
 	  dim_y = gv.dim_y; 
 	  dim_z = gv.dim_z;
 	  cell_size = gv.cell_size;
 	  bbox = gv.bbox; 
-	  tex; fbo;}
+	  tex = Texture.Texture_3D (base, params) ; fbo;}
 ;;
 
 let copy_gv1 gv = 
-	let tex = create_gv_texture "gv_texture2" gv.dim_x gv.dim_y gv.dim_z None in
-	let textures = {Render_texture.tex_list = [|tex|]; Render_texture.depth_tex_list = [||]} in
+	let Texture.Texture_3D (base, params) = create_gv_texture "gv_texture2" gv.dim_x gv.dim_y gv.dim_z None in
+	let textures = {Render_texture.tex_list = [|base.Texture.tex_id|]; Render_texture.depth_tex_list = [||]} in
 	let fbo = Render_texture.create textures None in 
 	{ dim_x = gv.dim_x; 
 	  dim_y = gv.dim_y; 
 	  dim_z = gv.dim_z;
 	  cell_size = gv.cell_size;
 	  bbox = gv.bbox; 
-	  tex; fbo;}
+	  tex = Texture.Texture_3D (base, params) ; fbo;}
 ;;
 
 
 let create_blockers_from_geometry_buffer gv depth_normal_buffer vpls =
 	FBO.glBindFrameBuffer FBO.GL_FRAMEBUFFER gv.fbo.Render_texture.id;
-	let shader = Glsl_shader.Resource_Map.find "inject_blockers2" (!Glsl_shader.shader_list) in
+	let shader = Glsl_shader.Resource_Map.find "inject_blocker2" (!Glsl_shader.shader_list) in
 	let program = shader.Glsl_shader.program in
 	GL.glUseProgram program;
 	
@@ -109,7 +109,7 @@ let create_blockers_from_geometry_buffer gv depth_normal_buffer vpls =
 	GL.glUniform1f loc (float depth_normal_buffer.Depth_normal_buffer.blocker_buffer_height);
 
 	let loc = GL.glGetUniformLocation program "near_far_plane" in
-	if loc = -1 then raise (Failure "load depth_normal_tex failure.");
+	if loc = -1 then raise (Failure "load near_far_plane failure.");
 	let Vector.Vec2 (x, y) = depth_normal_buffer.Depth_normal_buffer.near_far_plane in
 	GL.glUniform2f loc x y;
 
@@ -132,13 +132,13 @@ let create_blockers_from_geometry_buffer gv depth_normal_buffer vpls =
 	if loc = -1 then raise (Failure "load grid_size failure.");
 	GL.glUniform3f loc x y z;
 	
-	let Vector.Vec2 (x, y) = gv.cell_size in
+	let cell_area = x *. y in
 	let loc = GL.glGetUniformLocation program "cell_area" in
-	if loc = -1 then raise (Failure "load grid_size failure.");
-	GL.glUniform1f loc (x *. y);
+	if loc = -1 then raise (Failure "load cell_area failure.");
+	GL.glUniform1f loc cell_area;
 
-	let num_vpl = depth_normal_buffer.Depth_normal_buffer.blocker_buffer_width * depth_normal_buffer.Depth_normal_buffer.blocker_buffer_height in
-	Printf.printf "number of vpls: %d\n" num_vpl; 
+	let num_vpls = depth_normal_buffer.Depth_normal_buffer.blocker_buffer_width * depth_normal_buffer.Depth_normal_buffer.blocker_buffer_height in
+	Printf.printf "number of vpls: %d\n" num_vpls; 
 	GL.glClearColor 0.0 0.0 0.0 0.0;
 	GL.glClear [GL.GL_COLOR_BUFFER_BIT];
 	GL.glViewport 0 0 gv.dim_x gv.dim_y;
@@ -148,7 +148,7 @@ let create_blockers_from_geometry_buffer gv depth_normal_buffer vpls =
 	let vb_info = GL_buffer.Resource_Map.find "vpls" (!GL_buffer.buffer_list) in
 	(* bind *)
 	GL_buffer.bind_vertex_buffer_with_shader vb_info shader;
-	Glex.glDrawArraysInstanced GL.GL_POINTS 0 1 num_vpl;
+	Glex.glDrawArraysInstanced GL.GL_POINTS 0 1 num_vpls;
 	GL_buffer.unbind_vertex_buffer_with_shader vb_info;
 
 	GL.glDisable GL.GL_BLEND;
@@ -168,12 +168,10 @@ let create_blockers_from_rsm gv rsm vpls =
 	GL.glUseProgram program;
 	
 	let Texture.Texture_2D (depth_tex_base, depth_tex_params) = Texture.Resource_Map.find "rsm_depth_tex" (!Texture.texture_list) in
-
 	GL.glActiveTexture GL.GL_TEXTURE0;
 	GL.glBindTexture depth_tex_base.Texture.target depth_tex_base.Texture.tex_id;
 
 	let Texture.Texture_2D (normal_tex_base, normal_tex_params) = Texture.Resource_Map.find "rsm_normal_tex" (!Texture.texture_list) in
-
 	GL.glActiveTexture GL.GL_TEXTURE1;
 	GL.glBindTexture normal_tex_base.Texture.target normal_tex_base.Texture.tex_id;
 
@@ -191,35 +189,29 @@ let create_blockers_from_rsm gv rsm vpls =
 	GL.glUniform1f loc z;
 
 	let loc = GL.glGetUniformLocation program "depth_tex" in
-	if loc = -1 then raise (Failure "load inv_proj failure.");
+	if loc = -1 then raise (Failure "load depth_tex failure.");
 	GL.glUniform1i loc 0;
 
 	let loc = GL.glGetUniformLocation program "normal_tex" in
-	if loc = -1 then raise (Failure "load normslz-tex failure.");
+	if loc = -1 then raise (Failure "load normal-tex failure.");
 	GL.glUniform1i loc 1;
 
 	let x = (float (gv.dim_x - 1))/.(float gv.dim_x) in
 	let y = (float (gv.dim_y - 1))/.(float gv.dim_y) in
 	let z = 0.5 /. (float gv.dim_x) in
 	let k = 0.5 /. (float gv.dim_y) in
-	
 
 	let loc = GL.glGetUniformLocation program "proj_rsm_to_gv_grid" in
-	if loc = -1 then raise (Failure "load grid_orig failure.");
+	if loc = -1 then raise (Failure "load proj_rsm_to_gv_grid failure.");
 	GL.glUniform4f loc x y z k;
 
 	let point_weight = let tcells = float ((gv.dim_x - 1) * (gv.dim_y - 1)) and t = float (rsm.Rsm.width * rsm.Rsm.height) in tcells/.t in
 	let loc = GL.glGetUniformLocation program "point_weight" in
 	if loc = -1 then raise (Failure "load point_weight failure.");
 	GL.glUniform1f loc point_weight;
-	
-	let Vector.Vec2 (x, y) = gv.cell_size in
-	let loc = GL.glGetUniformLocation program "cell_area" in
-	if loc = -1 then raise (Failure "load grid_size failure.");
-	GL.glUniform1f loc (x *. y);
 
-	let num_vpl = rsm.Rsm.width * rsm.Rsm.height in
-	Printf.printf "number of vpls: %d\n" num_vpl; 
+	let num_vpls = rsm.Rsm.width * rsm.Rsm.height in
+	Printf.printf "number of vpls: %d\n" num_vpls; 
 	GL.glClearColor 0.0 0.0 0.0 0.0;
 	GL.glClear [GL.GL_COLOR_BUFFER_BIT];
 	GL.glViewport 0 0 gv.dim_x gv.dim_y;
@@ -229,10 +221,11 @@ let create_blockers_from_rsm gv rsm vpls =
 	let vb_info = GL_buffer.Resource_Map.find "vpls" (!GL_buffer.buffer_list) in
 	(* bind *)
 	GL_buffer.bind_vertex_buffer_with_shader vb_info shader;
-	Glex.glDrawArraysInstanced GL.GL_POINTS 0 1 num_vpl;
+	Glex.glDrawArraysInstanced GL.GL_POINTS 0 vb_info.GL_buffer.length num_vpls;
 	GL_buffer.unbind_vertex_buffer_with_shader vb_info;
 
 	GL.glDisable GL.GL_BLEND;
+
 	GL.glActiveTexture GL.GL_TEXTURE0;	
 	GL.glUnbindTexture depth_tex_base.Texture.target;
 
@@ -243,21 +236,23 @@ let create_blockers_from_rsm gv rsm vpls =
 	injected := true
 ;;
 
-let select_blockers dest_gv rsm_gv sisible_surface_gv slices = 
+let select_blockers dest_gv rsm_gv visible_surface_gv slices = 
 	FBO.glBindFrameBuffer FBO.GL_FRAMEBUFFER dest_gv.fbo.Render_texture.id;
 	let shader = Glsl_shader.Resource_Map.find "select_gv" (!Glsl_shader.shader_list) in
 	let program = shader.Glsl_shader.program in
 	GL.glUseProgram program;
 	
-	let (rsm_gv_base, rsm_gv_params) = match Texture.Resource_Map.find "gv_texture0" (!Texture.texture_list) with 
-							   Texture.Texture_3D (base, params) -> (base, params) 
-							|  _ -> raise (Failure "gv_texture0 should be 3-dimension texture.")
+	let (rsm_gv_base, rsm_gv_params) = match rsm_gv.tex with 
+						Texture.Texture_3D (base, params) -> (base, params) 
+					      |  _ -> raise (Failure "rsm_gv should be 3-dimension texture.")
 	in
-	let (visible_surface_gv_base, visible_surface_gv_params) = match Texture.Resource_Map.find "gv_texture1" (!Texture.texture_list) with
+	let (visible_surface_gv_base, visible_surface_gv_params) = match visible_surface_gv.tex with
 									  Texture.Texture_3D (base, params) -> (base, params)
-									| _ -> raise (Failure "gv_texture1 should be 3-dimension texture.")
+									| _ -> raise (Failure " should be 3-dimension texture.")
 	in
 	
+	Printf.printf "rsm_gv: %s\nvisible_surface_gv: %s" rsm_gv_base.Texture.name visible_surface_gv_base.Texture.name;
+
 	let loc = GL.glGetUniformLocation program "grid_depth" in
 	if loc = -1 then raise (Failure "load grid_depth failure.");
 	GL.glUniform1f loc (float dest_gv.dim_z);
@@ -282,7 +277,7 @@ let select_blockers dest_gv rsm_gv sisible_surface_gv slices =
 	GL.glUniform1i loc 1;
 
 	GL_buffer.bind_vertex_buffer_with_shader slices shader;
-	Glex.glDrawArraysInstanced GL.GL_TRIANGLES 0 6 dest_gv.dim_z;
+	Glex.glDrawArraysInstanced GL.GL_TRIANGLES 0 slices.GL_buffer.length dest_gv.dim_z;
 	GL_buffer.unbind_vertex_buffer_with_shader slices;
 
 	GL.glActiveTexture GL.GL_TEXTURE0;

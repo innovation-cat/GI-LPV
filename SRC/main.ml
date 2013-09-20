@@ -33,10 +33,12 @@ let sun_light = ref None
 let proj_mat_dirty = ref true
 let proj_mat = ref (Vector.build_identity_matrix ())
 
-let indirect_light_on = ref false
+let indirect_light_on = ref true
 let rotate_light = ref true (* indicate whether rotate light *)
 let light_rotation = ref (pi/.2.0) (* rotation angle *)
 let rotate_dir = ref (-1.0) (* only 1.0 or -1.0 *)
+
+
 (* light_rotation_axis_1:                                  *)
 (* 	true : sun_light.dir = Vector.Vec3 (1.0, 0.0, 0.0) *)
 (* 	false: sun_light.dir = Vector.Vec3 (1.0, 0.0, 1.0) *)
@@ -128,7 +130,10 @@ let initGL ~width ~height =                     (* We call this right after our 
 	end;
 
 	(!texture_list) |> Texture.Resource_Map.bindings |> List.iter (fun (a,b) -> Printf.printf "%s\n" a; Texture.print_texture_info b);
+	Printf.printf "\n\n";
 	(!shader_list) |> Glsl_shader.Resource_Map.bindings |> List.iter (fun (a,b) -> Printf.printf "%s\n" a);
+	Printf.printf "\n\n";
+	(!GL_buffer.buffer_list) |> GL_buffer.Resource_Map.bindings |> List.iter (fun (a,b) -> Printf.printf "%s\n" a);
 	flush stdout
 ;;
 
@@ -165,8 +170,9 @@ try
 		   let view_mat = Camera.get_transform cam (float (!frame_duration)) in
 		   calc_proj_mat ();
 
+		   let (_test_model, _sun_light, _grid, _rsm, _depth_normal_buffer, _indirect_light_buffer) = 
 		   if !indirect_light_on = true then begin
-			Depth_normal_buffer.set_begin _depth_normal_buffer view_mat !proj_mat _sun_light;
+			let _depth_normal_buffer = Depth_normal_buffer.set_begin _depth_normal_buffer view_mat !proj_mat _sun_light in
 			Depth_normal_buffer.draw _depth_normal_buffer _test_model;
 			Depth_normal_buffer.set_end _depth_normal_buffer;
 			
@@ -174,26 +180,30 @@ try
 			Grid.inject_from_rsm _grid _rsm;
 			Grid.select_grid _grid;
 			
-			let gv_texture = Texture.Resource_Map.find "gv_texture2" (!Texture.texture_list) in
-			Grid.inject_vpls _grid _rsm gv_texture;
-		
+			let gv_texture = _grid.Grid.gv2.Geometry_volume.tex in
+			let _grid = Grid.inject_vpls _grid _rsm gv_texture in
 			Indirect_light_buffer.set_begin _indirect_light_buffer view_mat !proj_mat _sun_light (Vector.Vec3 (16.0, 16.0, 16.0));
 			Grid.bind_light_volume_textures _grid;
 			Indirect_light_buffer.draw _indirect_light_buffer _test_model;
 
 			Grid.unbind_light_volume_textures _grid;
 			Indirect_light_buffer.set_end _indirect_light_buffer;
-			
+	
 			Indirect_light_buffer.blur _indirect_light_buffer _depth_normal_buffer (Vector.Vec3 (16.0, 16.0, 16.0)) _sun_light;
-				
-		   end;
+			(_test_model, _sun_light, _grid, _rsm, _depth_normal_buffer, _indirect_light_buffer)
+		   end
+		   else
+			(_test_model, _sun_light, _grid, _rsm, _depth_normal_buffer, _indirect_light_buffer)
+		   in
 
 		   let Vector.Vec3 (dir_x, dir_y, dir_z) = _sun_light.Directional_light.dir in
 		   let sky_color = (-1.) *. dir_y |> max 0.0 |> min 1.0 in
 		   glClearColor 0.0 0.0 sky_color 0.0;
 		   glClear [GL_DEPTH_BUFFER_BIT; GL_COLOR_BUFFER_BIT];   (* Clear The Screen And The Depth Buffer *)
 		   glViewport 0 0 !win_width !win_height;
+
 		   Model.draw _test_model view_mat !proj_mat _indirect_light_buffer _sun_light _rsm (!indirect_light_on);
+
 		   glEnable GL.GL_CULL_FACE;
 		   glPolygonMode GL.GL_FRONT_AND_BACK GL.GL_FILL;
 		   

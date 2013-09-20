@@ -36,7 +36,7 @@ let create_shader () =
 	let geometry_params = {Glsl_shader.input_type = 4; Glsl_shader.output_type = 5; Glsl_shader.vertices_out = 3} in
 	let shader_info = Glsl_shader.create propagate_vertex_shader_file propagate_fragment_shader_file (Some propagate_geometry_shader_file) (Some geometry_params) None in
 	Glsl_shader.insert_shader_list "propagate" shader_info;
-(*
+
 	let propagate_vertex_shader_file = "../shader/propagate_no_blocking.vp" in
 	let propagate_fragment_shader_file = "../shader/propagate_no_blocking.fp" in
 	let propagate_geometry_shader_file = "../shader/propagate_no_blocking.gp" in
@@ -58,7 +58,7 @@ let create_shader () =
 	let geometry_params = {Glsl_shader.input_type = 0; Glsl_shader.output_type = 0; Glsl_shader.vertices_out = 1} in
 	let shader_info = Glsl_shader.create inject_vertex_shader_file inject_fragment_shader_file (Some inject_geometry_shader_file) (Some geometry_params) None in
 	Glsl_shader.insert_shader_list "inject" shader_info
-*)
+
 ;;
 
 let grid_tex_params = {Texture.init_param_3d with Texture.Texture_Params_3D.min_filter = GL.Min.GL_NEAREST; 
@@ -261,7 +261,7 @@ let propagate grid gv_texture first_iteration =
 
 	let propagate_shader = Glsl_shader.Resource_Map.find "propagate" (!Glsl_shader.shader_list) in
 	GL_buffer.bind_vertex_buffer_with_shader grid.slices propagate_shader;
-	Glex.glDrawArraysInstanced GL.GL_POINTS 0 6 grid.dim_z;
+	Glex.glDrawArraysInstanced GL.GL_TRIANGLES 0 grid.slices.GL_buffer.length grid.dim_z;
 	GL_buffer.unbind_vertex_buffer_with_shader grid.slices;
 
 	if first_iteration = false then begin
@@ -344,7 +344,7 @@ let accumulate_in_light_volume grid source dest =
 	GL.glBlendFunc GL.Sfactor.GL_ONE GL.Dfactor.GL_ONE;
 
 	GL_buffer.bind_vertex_buffer_with_shader grid.slices shader;
-	Glex.glDrawArraysInstanced GL.GL_TRIANGLES 0 6 grid.dim_z;
+	Glex.glDrawArraysInstanced GL.GL_TRIANGLES 0 grid.slices.GL_buffer.length grid.dim_z;
 	GL_buffer.unbind_vertex_buffer_with_shader grid.slices;
 
 	GL.glDisable GL.GL_BLEND;
@@ -378,7 +378,8 @@ let propagate_and_accumulate grid gv_texture =
 				(* swap source_grid and dest_grid *)			 	
 				let tmp = grid.source_grid in
 			 	grid.source_grid <- grid.dest_grid;
-				grid.dest_grid <- tmp ) arr
+				grid.dest_grid <- tmp ) arr;
+	grid
 ;;
 	 
 
@@ -460,7 +461,7 @@ let inject_vpls grid rsm gv_texture =
 	GL.glBlendFunc GL.Sfactor.GL_ONE GL.Dfactor.GL_ONE;
 	
 	GL_buffer.bind_vertex_buffer_with_shader grid.vpls shader;
-	Glex.glDrawArraysInstanced GL.GL_POINTS 0 1 num_vpls;
+	Glex.glDrawArraysInstanced GL.GL_POINTS 0 grid.vpls.GL_buffer.length num_vpls;
 	GL_buffer.unbind_vertex_buffer_with_shader grid.vpls;
 
 	GL.glDisable GL.GL_BLEND;
@@ -478,10 +479,14 @@ let inject_vpls grid rsm gv_texture =
 
 	grid.grid_to_show <- grid.source_grid;
 	
-	if grid.iterations > 0 then begin
-		propagate_and_accumulate grid gv_texture;
-		grid.grid_to_show <- grid.light_volume;
-	end;
+	let u_grid = if grid.iterations > 0 then begin
+				let tmp =  propagate_and_accumulate grid gv_texture in
+				tmp.grid_to_show <- tmp.light_volume;
+				tmp
+		     	end
+		     else grid 
+	in
+	u_grid
 ;;
 
 let bind_light_volume_textures grid = 

@@ -123,6 +123,7 @@ let set_begin d_n_b view_matrix proj_matrix sun_light =
 	GL.glViewport 0 0 d_n_b.width d_n_b.height; 
 	GL.glClearColor 1.0 1.0 1.0 1.0;
 	glClear [GL.GL_COLOR_BUFFER_BIT; GL.GL_DEPTH_BUFFER_BIT];
+	d_n_b
 ;;
 
 let draw d_n_b test_model = 
@@ -130,7 +131,7 @@ let draw d_n_b test_model =
 	let shader = Glsl_shader.Resource_Map.find "depth_normal" (!Glsl_shader.shader_list) in
 	GL_buffer.bind_vertex_buffer_with_shader vertex_buffer shader;
 	
-	VertArray.glDrawArrays GL.GL_TRIANGLES 0 150;
+	VertArray.glDrawArrays GL.GL_TRIANGLES 0 vertex_buffer.GL_buffer.length;
 	GL_buffer.unbind_vertex_buffer_with_shader vertex_buffer;
 ;;
 
@@ -151,7 +152,7 @@ let set_end d_n_b =
 		|  _ -> raise (Failure "depth_normal is a 2-dimension texture.")
 	in
 	let loc = GL.glGetUniformLocation program "texture" in
-	if loc = -1 then raise (Failure "load projection_matrix variable failure.");
+	if loc = -1 then raise (Failure "load texture variable failure.");
 	GL.glUniform1i loc 0;
 	GL.glActiveTexture GL.GL_TEXTURE0;
 	GL.glBindTexture depth_normal_base.Texture.target depth_normal_base.Texture.tex_id;
