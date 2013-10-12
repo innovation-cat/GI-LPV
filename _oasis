@@ -1,0 +1,171 @@
+OASISFormat: 0.3
+Name:        GI-LPV
+Version:     1.0
+Synopsis:    Implement Global illumination with OCaml and GPU programming skill
+Authors:     Anbu Huang
+License:     LGPL
+BuildTools:  ocamlbuild
+Plugins:     StdFiles (0.3), DevFiles (0.3) META (0.3)
+Homepage:    https://github.com/wong4ever/GI-LPV
+
+Library vector
+  Path:           SRC/
+  Modules:        Vector
+  CompiledObject: byte
+  install:        true
+
+Library bounding_box
+  Path:           SRC/
+  Modules:        Bounding_box
+  CompiledObject: byte
+  install:        true
+
+Library loadtga
+  Path:           SRC/
+  Modules:        Loadtga
+  CompiledObject: byte
+  CSources:       loadtga_stubs.c 
+  BuildDepends:   bigarray
+  install:        true
+
+Library directional_light
+  Path:           SRC/
+  Modules:        Directional_light
+  CompiledObject: byte
+  BuildDepends:   vector, bounding_box
+  install:        true
+
+Library camera
+  Path:           SRC/
+  Modules:        Camera
+  CompiledObject: byte
+  BuildDepends:   vector
+  install:        true
+
+
+Library glex
+  Path:           SRC/
+  Modules:        Glex
+  CompiledObject: byte
+  CSources:       glex_stubs.c
+  BuildDepends:   GL
+  install:        true
+
+Library FBO
+  Path:           SRC/
+  Modules:        FBO
+  CompiledObject: byte
+  CSources:       FBO_stubs.c
+  BuildDepends:   GL
+  install:        true
+
+Library glsl_shader
+  Path:           SRC/
+  Modules:        Glsl_shader
+  CompiledObject: byte
+  BuildDepends:   GL, glex
+  install:        true
+
+Library gl_buffer
+  Path:           SRC/
+  Modules:        GL_buffer
+  CompiledObject: byte
+  BuildDepends:   GL, glex
+  install:        true
+
+Library texture
+  Path:           SRC/
+  Modules:        Texture
+  CompiledObject: byte
+  BuildDepends:   bigarray, GL, glex
+  install:        true
+
+Library depth_buffer
+  Path:           SRC/
+  Modules:        Depth_buffer
+  CompiledObject: byte
+  BuildDepends:   FBO
+  install:        true
+
+Library render_texture
+  Path:           SRC/
+  Modules:        Render_texture
+  CompiledObject: byte
+  BuildDepends:   GL, glex, FBO, texture, depth_buffer
+  install:        true
+
+Library rsm
+  Path:           SRC/
+  Modules:        Rsm
+  CompiledObject: byte
+  BuildDepends:   GL, glex, FBO, texture, depth_buffer, render_texture
+  install:        true
+
+Library model
+  Path:           SRC/
+  Modules:        Model
+  CompiledObject: byte
+  BuildDepends:   bigarray, GL, vertArray, VBO, glex, FBO, vector, bounding_box, glsl_shader, gl_buffer, texture, directional_light, render_texture
+  install:        true
+
+
+Library depth_normal_buffer
+  Path:           SRC/
+  Modules:        Depth_normal_buffer
+  CompiledObject: byte
+  BuildDepends:   GL, vertArray, glex, FBO, vector, glsl_shader, gl_buffer, directional_light, texture, depth_buffer, render_texture, model
+  install:        true
+
+Library indirect_light_buffer
+  Path:           SRC/
+  Modules:        Indirect_light_buffer
+  CompiledObject: byte
+  BuildDepends:   GL, glex, FBO, vector, glsl_shader, gl_buffer, directional_light, texture, depth_buffer, render_texture, model, depth_normal_buffer
+  install:        true
+
+Library geometry_volume
+  Path:           SRC/
+  Modules:        Geometry_volume
+  CompiledObject: byte
+  BuildDepends:   bigarray, GL, FBO, glex, vector, glsl_shader, bounding_box, gl_buffer, texture, render_texture, depth_normal_buffer
+  install:        true
+
+Library grid
+  Path:           SRC/
+  Modules:        Grid
+  CompiledObject: byte
+  BuildDepends:   bigarray, GL, FBO, glex, vector, glsl_shader, gl_buffer, texture, render_texture, directional_light, geometry_volume
+  install:        true
+
+
+Executable GI_LPV
+  Path:           SRC/
+  MainIs:         main.ml
+  CompiledObject: byte
+  BuildDepends:   bigarray, 
+                  GL,
+                  Glu, 
+                  Glut,
+                  vertArray, 
+                  VBO, 
+                  glex, 
+                  FBO, 
+                  loadtga,
+                  vector, 
+                  bounding_box, 
+                  glsl_shader, 
+                  gl_buffer, 
+                  texture, 
+                  directional_light, 
+                  depth_buffer,
+                  render_texture,
+                  rsm,
+                  model,
+                  depth_normal_buffer,
+                  indirect_light_buffer,
+                  geometry_volume,
+                  grid,
+                  camera
+  install:        false
+
+

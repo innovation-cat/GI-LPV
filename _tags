@@ -1,0 +1,107 @@
+# OASIS_START
+# DO NOT EDIT (digest: da6af4688b6bfd02736d213b8fc25497)
+# Ignore VCS directories, you can use the same kind of rule outside 
+# OASIS_START/STOP if you want to exclude directories that contains 
+# useless stuff for the build process
+<**/.svn>: -traverse
+<**/.svn>: not_hygienic
+".bzr": -traverse
+".bzr": not_hygienic
+".hg": -traverse
+".hg": not_hygienic
+".git": -traverse
+".git": not_hygienic
+"_darcs": -traverse
+"_darcs": not_hygienic
+# Library vector
+"SRC/vector.cmxs": use_vector
+# Library bounding_box
+"SRC/bounding_box.cmxs": use_bounding_box
+# Library loadtga
+"SRC/loadtga.cmxs": use_loadtga
+"SRC/loadtga.cma": use_libloadtga_stubs
+"SRC/loadtga_stubs.c": pkg_bigarray
+# Library directional_light
+"SRC/directional_light.cmxs": use_directional_light
+# Library camera
+"SRC/camera.cmxs": use_camera
+# Library glex
+"SRC/glex.cmxs": use_glex
+"SRC/glex.cma": use_libglex_stubs
+"SRC/glex_stubs.c": pkg_GL
+# Library FBO
+"SRC/FBO.cmxs": use_FBO
+"SRC/FBO.cma": use_libFBO_stubs
+"SRC/FBO_stubs.c": pkg_GL
+# Library glsl_shader
+"SRC/glsl_shader.cmxs": use_glsl_shader
+# Library gl_buffer
+"SRC/gl_buffer.cmxs": use_gl_buffer
+# Library texture
+"SRC/texture.cmxs": use_texture
+# Library depth_buffer
+"SRC/depth_buffer.cmxs": use_depth_buffer
+# Library render_texture
+"SRC/render_texture.cmxs": use_render_texture
+# Library rsm
+"SRC/rsm.cmxs": use_rsm
+# Library model
+"SRC/model.cmxs": use_model
+# Library depth_normal_buffer
+"SRC/depth_normal_buffer.cmxs": use_depth_normal_buffer
+# Library indirect_light_buffer
+"SRC/indirect_light_buffer.cmxs": use_indirect_light_buffer
+# Library geometry_volume
+"SRC/geometry_volume.cmxs": use_geometry_volume
+# Library grid
+"SRC/grid.cmxs": use_grid
+# Executable GI_LPV
+"SRC/main.byte": use_grid
+"SRC/main.byte": use_geometry_volume
+"SRC/main.byte": use_indirect_light_buffer
+"SRC/main.byte": use_depth_normal_buffer
+"SRC/main.byte": use_model
+"SRC/main.byte": use_camera
+"SRC/main.byte": use_directional_light
+"SRC/main.byte": use_vector
+"SRC/main.byte": use_bounding_box
+"SRC/main.byte": use_loadtga
+"SRC/main.byte": use_rsm
+"SRC/main.byte": use_render_texture
+"SRC/main.byte": use_texture
+"SRC/main.byte": use_gl_buffer
+"SRC/main.byte": use_glsl_shader
+"SRC/main.byte": use_glex
+"SRC/main.byte": use_depth_buffer
+"SRC/main.byte": use_FBO
+"SRC/main.byte": pkg_bigarray
+"SRC/main.byte": pkg_GL
+"SRC/main.byte": pkg_Glu
+"SRC/main.byte": pkg_Glut
+"SRC/main.byte": pkg_vertArray
+"SRC/main.byte": pkg_VBO
+<SRC/*.ml{,i}>: use_grid
+<SRC/*.ml{,i}>: use_geometry_volume
+<SRC/*.ml{,i}>: use_indirect_light_buffer
+<SRC/*.ml{,i}>: use_depth_normal_buffer
+<SRC/*.ml{,i}>: use_model
+<SRC/*.ml{,i}>: use_camera
+<SRC/*.ml{,i}>: use_directional_light
+<SRC/*.ml{,i}>: use_vector
+<SRC/*.ml{,i}>: use_bounding_box
+<SRC/*.ml{,i}>: use_loadtga
+<SRC/*.ml{,i}>: use_rsm
+<SRC/*.ml{,i}>: use_render_texture
+<SRC/*.ml{,i}>: use_texture
+<SRC/*.ml{,i}>: use_gl_buffer
+<SRC/*.ml{,i}>: use_glsl_shader
+<SRC/*.ml{,i}>: use_glex
+<SRC/*.ml{,i}>: use_depth_buffer
+<SRC/*.ml{,i}>: use_FBO
+<SRC/*.ml{,i}>: pkg_bigarray
+<SRC/*.ml{,i}>: pkg_GL
+<SRC/*.ml{,i}>: pkg_Glu
+<SRC/*.ml{,i}>: pkg_Glut
+<SRC/*.ml{,i}>: pkg_vertArray
+<SRC/*.ml{,i}>: pkg_VBO
+# OASIS_STOP

@@ -1,0 +1,44 @@
+(* OASIS_START *)
+(* DO NOT EDIT (digest: 71549d1d7105616f36e4eff33a9bcff3) *)
+This is the INSTALL file for the GI-LPV distribution.
+
+This package uses OASIS to generate its build system. See section OASIS for
+full information. 
+
+Dependencies
+============
+
+In order to compile this package, you will need:
+* ocaml
+* findlib
+* GL for library FBO, library depth_normal_buffer, library geometry_volume,
+  library gl_buffer, library glex, library glsl_shader, library grid,
+  library indirect_light_buffer, library model, library render_texture,
+  library rsm, library texture, executable GI_LPV
+* vertArray for library depth_normal_buffer, library model, executable GI_LPV
+* VBO for library model, executable GI_LPV
+* Glu for executable GI_LPV
+* Glut for executable GI_LPV
+
+Installing
+==========
+
+1. Uncompress the source archive and go to the root of the package
+2. Run 'ocaml setup.ml -configure'
+3. Run 'ocaml setup.ml -build'
+4. Run 'ocaml setup.ml -install'
+
+Uninstalling
+============
+
+1. Go to the root of the package 
+2. Run 'ocaml setup.ml -uninstall'
+
+OASIS
+=====
+
+OASIS is a program that generates a setup.ml file using a simple '_oasis'
+configuration file. The generated setup only depends on the standard OCaml
+installation: no additional library is required.
+
+(* OASIS_STOP *)
